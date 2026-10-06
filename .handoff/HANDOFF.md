@@ -1,25 +1,26 @@
-# 引き継ぎ (2026-10-06 13:58 / main)
+# 引き継ぎ (2026-10-06 14:22 / main)
 
-次の一手: 環境 B で `C:\Strata\run-iq2_xs.bat` ができているか確認する。無ければ `C:\Strata\START-HERE.bat --yes --family qwen --model IQ2_XS --no-start` を再実行する（ダウンロードは続きから再開する）。
+次の一手: `strata-qwen.cmd` をダブルクリックし、Strata の起動と Qwen Code の起動を確認する（初回の読み込みは 1〜3 分、PC が重くなる）。
 
 ## 完了
-- `README.md` に 3 環境の表と目的・方針を追加（e97f1e8）
-- 環境 B（5070 12GB / RAM 64GB）に `C:\Strata` を clone した
-- Qwen Code 0.25.0 を `npm install -g @qwen-code/qwen-code` で導入した
-- モデルは IQ2_XS（`--family qwen`）に決定。不満があれば Q2_0（速い）か IQ3_XXS（品質寄り）に変える。無検閲版 OrcaRouter IQ3_XXS は `docs/ORCA.md` の手動手順が必要なので後回し
-- IQ2_XS のダウンロード: 1つ目 39.23GB は完了、2つ目 28.80GB は 94% で停止中に確認。データは `C:\Strata-data`
+- 環境 B（5070 12GB / RAM 64GB）に Strata を導入した: `C:\Strata`、データは `C:\Strata-data`、モデルは IQ2_XS（`--family qwen`）
+- Qwen Code 0.25.0 を導入し、Strata 経由の応答を確認した（`qwen -p "1+1は？"` → 2、40秒）
+- 起動用 bat を作成した: `strata-qwen.cmd`（Strata を起動し、`/health` を待って `qwen` を開く）
+- 400 エラー（max_tokens 64000 > 文脈 32768）を、`C:\Strata\strata-iq2_xs.json` に `"fit_max_tokens": true` を追加して解消した
 
 ## 残り（優先順・最大5件）
-- セットアップ完了を確認し、起動用 bat を作る（`run-iq2_xs.bat` を元にする）
-- 起動後に `http://127.0.0.1:8080/v1/models` で応答を確認する
-- Qwen Code を接続する: `OPENAI_BASE_URL=http://127.0.0.1:8080/v1`、`OPENAI_MODEL=strata`、API キーは任意の値
-- `README.md` の「Qwen Code の接続」を実値で更新する
-- 同じ課題を opencode でも試し、ツール呼び出し成功率と初回応答秒数を比較する。環境 A・C でもセットアップして tok/s を測る
+- `README.md` の「Qwen Code の接続」を実値で更新する（URL `http://127.0.0.1:8080/v1`、`OPENAI_API_KEY` は任意の値）
+- Qwen Code で実際のツール呼び出し（ファイル編集など）が動くか試す
+- 同じ課題を opencode でも試し、ツール呼び出し成功率と初回応答秒数を比較する
+- tok/s を測る（docs の実測は IQ2_XS で 79 tok/s）
+- 不満があればモデルを変える（Q2_0 は速い、IQ3_XXS は品質寄り）
 
 ## 保留
-- Qwen3.8-Flash-Next での Qwen Code 動作 — 未検証
-- モデルの起動直後は PC が 1〜3 分重くなる（docs/AI_SETUP.md）
+- 無検閲版 OrcaRouter IQ3_XXS — 手動手順が必要（`C:\Strata\docs\ORCA.md`）。通常版で不満が出たら検討
+- データの置き場所 — いまは `C:\Strata-data` のまま。移す場合は `--data-dir` で再実行し、`.gitignore` を先に直す
 
 ## 再開に必要なもの
-- Claude Code 経由の bat 実行では、`cmd /c START-HERE.bat` が「認識されない」と出る。フルパス `C:\Strata\START-HERE.bat` で `call` する
-- 他の PC は `git clone https://github.com/Niko1221/Strata C:\Strata` から始める（モデルは約 70GB）
+- git に入らないもの: `C:\Strata`（`git clone https://github.com/Niko1221/Strata C:\Strata`）、`C:\Strata-data`（約 70GB）、`strata-iq2_xs.json` の `fit_max_tokens` 設定
+- 他の PC では `START-HERE.bat --yes --family qwen --model <サイズ> --no-start` を実行する。Claude Code 経由で bat を呼ぶときはフルパスで `call` する（相対名だと「認識されない」と出る）
+- `npm install -g @qwen-code/qwen-code`
+- 環境変数（名前のみ）: `OPENAI_BASE_URL`、`OPENAI_API_KEY`、`OPENAI_MODEL`（`strata-qwen.cmd` 内で設定済み）

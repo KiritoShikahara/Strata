@@ -1,4 +1,4 @@
-# 引き継ぎ (2026-10-06 14:52 / main)
+# 引き継ぎ (2026-10-06 15:25 / main)
 
 次の一手: 別 PC に `install-strata-qwen.bat` だけをコピーしてダブルクリックし、最後まで通るか確認する（約 70GB のダウンロードで数時間）。
 
@@ -10,11 +10,13 @@
 - 文脈を 32768 → 131072 に拡大した（32K だと Qwen Code のプロンプトで上限エラーになる）。インストーラーは `--context 131072` で導入する（81de485）
 - `fit_max_tokens: true` をインストーラーが `strata-iq2_xs.json` に設定する
 - `qwen-skills/` に Qwen Code 用スキル 15 件を追加し、この PC の `~/.qwen/skills` に入れて認識を確認した（8e9df51）
-- インストーラー手順 7 で `qwen-skills/` を `~/.qwen/skills` に展開する（埋め込み zip、一時 HOME で 15 件の一致を確認済み）
+- インストーラー（全 7 手順、1 ファイルで完結）: モデルを番号で選択（1 IQ2_XS 推奨 / 2 Q2_0 / 3 IQ3_XXS / 4 IQ3_S / 5 Coder / 6 Swift、引数 `install-strata-qwen.bat 2` でも指定可）。`strata-download.bat`（後からモデル追加・切替）、`strata-qwen.bat`、スキル 15 件、Qwen Code 設定を書き出す
+- `strata-download.bat`: 選んだモデルを `C:Strataselected-model.txt` に保存し、`strata-qwen.bat` がそれを起動する。API のモデル名は `strata` 固定
+- Qwen Code を止まらない設定にした（`qwen-settings.js`）: 自動圧縮を 70%、ターン数とトークン数の上限なし、ウィンドウ 120000、タイムアウト 15 分
 - `.gitattributes` で `*.bat` と `*.cmd` を CRLF に固定した（a59999c）
 
 ## 残り（優先順・最大5件）
-- 別 PC でスキルが自動で入るか確認する（インストーラー手順 7）
+- 別 PC で新規インストール（モデル選択メニュー含む）を検証する。メニュー（`choice`）の対話操作はこの PC で未確認、引数指定は確認済み
 - 別 PC（環境 A・C）でインストーラーを新規実行して検証する。Git・Node の自動導入と初回導入は未確認
 - `strata-qwen.bat` の窓を × で閉じたときに `strata.exe` が残らないかを確認する
 - Qwen Code でスキルとツール呼び出し（ファイル編集など）が実際に動くか試し、opencode と成功率・初回応答秒数を比較する
@@ -28,6 +30,6 @@
 ## 再開に必要なもの
 - git に入らないもの: `C:\Strata`（インストーラーが clone する）、`C:\Strata-data`（約 70GB、空き約 80GB が必要）
 - bat は CRLF・ASCII のみで保つ（LF や日本語が入ると cmd で壊れる）。Claude Code 経由で bat を呼ぶときはフルパスを使う
-- `strata-qwen.bat` または `qwen-skills/` を変更したら、`node build-installer.js` を実行する（インストーラー末尾の埋め込み `::| ` と `::# ` を再生成する）
+- `strata-qwen.bat` または `qwen-skills/` を変更したら、`node build-installer.js` を実行する（`strata-download.bat`・`qwen-settings.js` も同様。インストーラー末尾の埋め込みを再生成する）
 - 環境変数（名前のみ）: `OPENAI_BASE_URL`、`OPENAI_API_KEY`、`OPENAI_MODEL`（`strata-qwen.bat` 内で設定済み）、`STRATA_DIR`（任意）
 - 注意: IQ2_XS はツール呼び出しの精度が未検証で、YOLO モードと組み合わせると誤操作の恐れがある

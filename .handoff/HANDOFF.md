@@ -1,10 +1,10 @@
 # 引き継ぎ (2026-10-06 14:32 / main)
 
-次の一手: 別 PC で `install-strata-qwen.bat` をダブルクリックし、最後まで通るか確認する（約 70GB のダウンロードで数時間）。
+次の一手: 別 PC に `install-strata-qwen.bat` だけをコピーしてダブルクリックし、最後まで通るか確認する（約 70GB のダウンロードで数時間）。
 
 ## 完了
 - 環境 B（5070 12GB / RAM 64GB）に Strata（IQ2_XS）と Qwen Code 0.25.0 を導入し、Qwen Code 経由の応答を確認した（約 75〜79 tok/s）
-- `install-strata-qwen.bat`: Git・Node.js・Strata・モデル・Qwen Code を 1 クリックで導入する。再実行しても済んだ手順は飛ばす（fe09878）
+- `install-strata-qwen.bat`: Git・Node.js・Strata・モデル・Qwen Code を 1 クリックで導入し、手順 6 で `strata-qwen.bat` も書き出す（埋め込み、書き出し結果が一致することを確認済み）。再実行しても済んだ手順は飛ばす（f11fd24）
 - `strata-qwen.bat`: Strata を起動して Qwen Code を開く。起動中なら再利用し、自分で起動した場合だけ終了時に Strata を停止する。1 ファイルだけ他プロジェクトにコピーして使える（85b07c7）
 - 400 エラー（max_tokens 64000 > 文脈 32768）を `fit_max_tokens: true` で解消した（インストーラーが自動で設定する）
 
@@ -22,5 +22,6 @@
 ## 再開に必要なもの
 - git に入らないもの: `C:\Strata`（インストーラーが clone する）、`C:\Strata-data`（約 70GB、空き約 80GB が必要）
 - bat は CRLF・ASCII のみで保つ（LF や日本語が入ると cmd で壊れる）
+- `strata-qwen.bat` を変更したら、`install-strata-qwen.bat` 末尾の埋め込み部分（`::| ` で始まる行）も同じ内容に更新する
 - Claude Code 経由で bat を呼ぶときはフルパスを使う（相対名だと「認識されない」と出る）
 - 環境変数（名前のみ）: `OPENAI_BASE_URL`、`OPENAI_API_KEY`、`OPENAI_MODEL`（`strata-qwen.bat` 内で設定済み）、`STRATA_DIR`（任意）

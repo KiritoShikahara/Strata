@@ -1,0 +1,4 @@
+system: windows-control powershell cmd filesystem process-management service-management registry environment-variables package-management software-installation archive-compression network-diagnostics http-api ssh remote-execution remote-desktop-assist docker docker-compose wsl-linux system-monitoring hardware-diagnostics gpu-nvidia storage-management backup-restore permissions-acl scheduled-tasks logs-event-viewer
+languages: cpp c csharp python javascript typescript sql powershell-scripting bash
+cpp-windows: cmake msbuild msvc win32 directx11 directx12 graphics-debugging memory-performance concurrency ecs physics-integration
+security: security-review dependency-audit secret-scan permission-audit network-security-review supply-chain-review

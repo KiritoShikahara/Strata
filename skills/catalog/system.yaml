@@ -1,0 +1,559 @@
+category: system
+defaults:
+  tools: [terminal]
+  fallback: ['tool-missing: winget/pip/npm で導入 → 代替ツール']
+  risk: low
+skills:
+  - name: windows-control
+    d: Windows 11 の設定・ウィンドウ・アプリ操作を自動化する
+    tr: [Windows 操作, ウィンドウ, 設定変更, アプリ起動]
+    tools: [terminal, computer_use]
+    opt: [vision_analyze, browser_vision]
+    deps: [powershell]
+    steps:
+      - 'Get-Process | Where-Object MainWindowTitle で対象ウィンドウを特定する'
+      - 'Start-Process / ms-settings:<page> URI で設定アプリやアプリを起動する'
+      - 'UI 操作が必要なら computer_use でスクリーンショットを取り座標/要素を確認して操作する'
+      - '変更前に Get-ItemProperty 等で現在値を記録する'
+      - '操作後に再度状態を取得して差分を確認する'
+    verify: 'Get-Process <name> や Get-ItemProperty で期待状態になっていることを確認'
+    fb:
+      - 'ms-settings: URI や COM(WScript.Shell) 経由に切替'
+      - 'UI Automation (System.Windows.Automation) を使う'
+      - 'computer_use による画面操作に切替'
+      - 'AutoHotkey を winget install AutoHotkey.AutoHotkey で導入'
+    rel: [powershell, registry, permission-policy, verification]
+    "no": ['重要システム設定(UAC/Defender/ファイアウォール無効化)を承認なしで変更しない', 'ユーザー作業中のウィンドウを閉じない']
+    risk: medium
+  - name: powershell
+    d: PowerShell 5.1/7 のコマンド実行とパイプライン処理
+    tr: [PowerShell, pwsh, Get-, Set-, ps1]
+    tools: [terminal, read_file]
+    opt: [execute_code]
+    deps: [pwsh]
+    steps:
+      - '$PSVersionTable.PSVersion で 5.1 か 7 かを確認する'
+      - 'Get-Command <cmd>; Get-Help <cmd> -Examples で構文を確認する'
+      - 'パイプラインは Where-Object / Select-Object / Sort-Object で絞り、-WhatIf 対応コマンドは先に -WhatIf で実行する'
+      - '$ErrorActionPreference = "Stop" と try/catch で失敗を検知する'
+      - '出力は ConvertTo-Json -Depth 5 や Export-Csv で構造化する'
+    verify: '$LASTEXITCODE と $? が成功値、期待オブジェクトが出力されること'
+    fb:
+      - 'pwsh 不在: winget install Microsoft.PowerShell'
+      - 'powershell.exe(5.1) で互換構文に書換える'
+      - 'cmd /c でバッチ等価コマンドを使う'
+      - 'Python (subprocess) で代替実装'
+    rel: [cmd, powershell-scripting, filesystem, debugging]
+    "no": ['Invoke-Expression で外部入力を実行しない', 'Remove-Item -Recurse -Force を確認なしで広範囲に使わない', 'ExecutionPolicy を恒久的に Unrestricted にしない']
+    risk: medium
+  - name: cmd
+    d: cmd.exe とバッチファイルの実行・変換
+    tr: [cmd, バッチ, .bat, 'cmd /c']
+    tools: [terminal]
+    opt: [read_file, write_file]
+    deps: [cmd.exe]
+    steps:
+      - 'cmd /c "<command>" で実行し %ERRORLEVEL% を確認する'
+      - 'where <exe> でパス解決を確認する'
+      - 'バッチは setlocal EnableDelayedExpansion と if errorlevel 1 exit /b 1 を使う'
+      - 'パスの空白は二重引用符で囲み、%~dp0 で自スクリプト基準にする'
+      - '複雑なら PowerShell へ移植する'
+    verify: 'echo %ERRORLEVEL% が 0 で期待出力が得られる'
+    fb:
+      - 'PowerShell の Start-Process / & 演算子で呼ぶ'
+      - 'Git Bash 経由で実行'
+      - 'PowerShell スクリプトに書換える'
+    rel: [powershell, filesystem]
+    "no": ['format / del /s /q / rd /s /q を承認なしで実行しない', 'ユーザー入力を未エスケープで連結しない']
+    risk: low
+  - name: filesystem
+    d: ファイル・フォルダの検索・コピー・移動・整理
+    tr: [ファイル検索, コピー, 移動, フォルダ, 整理]
+    tools: [terminal, search_files, read_file]
+    opt: [write_file, patch]
+    deps: [robocopy]
+    steps:
+      - 'Get-ChildItem -Recurse -File -Filter <pat> で対象を列挙し件数とサイズを集計する'
+      - 'Test-Path / Get-FileHash -Algorithm SHA256 で存在と同一性を確認する'
+      - '大量コピーは robocopy <src> <dst> /E /R:1 /W:1 /LOG:<file> を使う'
+      - '削除・上書きは先に一覧を提示し Move-Item で退避してから行う'
+      - '長いパスは \\?\ プレフィックスか LongPathsEnabled を確認する'
+    verify: 'Get-ChildItem 件数と Get-FileHash が期待どおり一致する'
+    fb:
+      - 'robocopy 失敗: Copy-Item -Recurse に切替'
+      - 'アクセス拒否: permissions-acl で ACL を確認し管理者権限を依頼'
+      - 'ロック中: process-management で保持プロセスを特定'
+      - 'WSL の rsync / find を使う'
+    rel: [powershell, permissions-acl, backup-restore, checkpoint]
+    "no": ['大量・不可逆削除は承認なしで行わない', 'robocopy /MIR /PURGE を宛先確認なしで使わない', 'C:\Windows や他ユーザープロファイルを変更しない']
+    risk: medium
+  - name: process-management
+    d: プロセスの一覧・監視・起動・停止
+    tr: [プロセス, kill, タスクマネージャ, 起動中, ハング]
+    tools: [terminal, process]
+    opt: []
+    deps: [powershell]
+    steps:
+      - 'Get-Process | Sort-Object CPU -Descending | Select -First 10 で負荷を確認する'
+      - 'Get-CimInstance Win32_Process -Filter "Name=''x.exe''" で CommandLine と親 PID を確認する'
+      - 'Get-NetTCPConnection -OwningProcess <pid> でポート使用を確認する'
+      - 'まず CloseMainWindow() で正常終了を試し、駄目なら Stop-Process -Id <pid>'
+      - '起動は Start-Process -PassThru で PID を記録する'
+    verify: 'Get-Process -Id <pid> が見つからない、または期待プロセスが Responding=True'
+    fb:
+      - 'Stop-Process 拒否: taskkill /PID <pid> /T'
+      - '権限不足: 昇格を依頼'
+      - 'Sysinternals Process Explorer (winget install Microsoft.Sysinternals.ProcessExplorer)'
+    rel: [service-management, system-monitoring, powershell]
+    "no": ['システムプロセス(csrss/lsass/winlogon 等)を停止しない', '対象 PID を確認せず名前一括 kill しない']
+    risk: medium
+  - name: service-management
+    d: Windows サービスの状態確認・起動停止・設定
+    tr: [サービス, Get-Service, sc.exe, 自動起動]
+    tools: [terminal]
+    opt: [read_file]
+    deps: [powershell, sc.exe]
+    steps:
+      - 'Get-Service <name> | Format-List * で状態と依存を確認する'
+      - 'Get-CimInstance Win32_Service -Filter "Name=''x''" で実行パスとアカウントを確認する'
+      - 'Restart-Service <name> -Verbose で再起動する(管理者権限)'
+      - 'Set-Service -Name <n> -StartupType Manual 等は変更前の値を記録してから行う'
+      - 'Get-WinEvent -FilterHashtable @{LogName=''System''; ProviderName=''Service Control Manager''} で失敗理由を見る'
+    verify: '(Get-Service <name>).Status が Running/Stopped など期待値'
+    fb:
+      - 'sc.exe query / sc.exe config を使う'
+      - 'net start / net stop を使う'
+      - 'services.msc の手動案内'
+      - 'NSSM (winget install NSSM.NSSM) でラップ'
+    rel: [process-management, logs-event-viewer, permissions-acl]
+    "no": ['セキュリティ関連サービス(WinDefend, EventLog, RpcSs 等)を停止/無効化しない', '承認なしで新規サービスを登録しない']
+    risk: high
+  - name: registry
+    d: レジストリの参照・バックアップ・変更
+    tr: [レジストリ, regedit, HKLM, HKCU, reg.exe]
+    tools: [terminal]
+    opt: [read_file]
+    deps: [reg.exe]
+    steps:
+      - 'Get-ItemProperty -Path "HKCU:\Software\<key>" で現在値を取得する'
+      - 'reg export "HKCU\Software\<key>" backup.reg でバックアップする'
+      - 'New-ItemProperty / Set-ItemProperty -Type DWord で変更する'
+      - 'HKLM は管理者権限と変更理由を明示して行う'
+      - '変更後に再取得し、必要ならアプリ再起動で反映を確認する'
+    verify: 'Get-ItemProperty で値が期待どおり、backup.reg が存在する'
+    fb:
+      - 'reg add / reg query に切替'
+      - 'reg import backup.reg で巻き戻す'
+      - 'Group Policy / 設定アプリ側の正規手段を使う'
+    rel: [environment-variables, permissions-acl, checkpoint]
+    "no": ['バックアップ無しで HKLM を変更しない', 'HKLM\SYSTEM / SAM / SECURITY を変更しない', 'キーの再帰削除を承認なしで行わない']
+    risk: high
+  - name: environment-variables
+    d: 環境変数と PATH の確認・設定
+    tr: [環境変数, PATH, setx, $env]
+    tools: [terminal]
+    opt: []
+    deps: [powershell]
+    steps:
+      - '$env:PATH -split ";" で現在のプロセス PATH を確認する'
+      - '[Environment]::GetEnvironmentVariable("PATH","User") でユーザー値を確認する'
+      - '現在値を退避してから [Environment]::SetEnvironmentVariable(name,value,"User") で設定する'
+      - 'setx は 1024 文字で切れるため PATH には使わない'
+      - '新しいシェルを開いて反映を確認する'
+    verify: 'Get-Command <exe> が新 PATH で解決され、新規 pwsh で値が見える'
+    fb:
+      - 'セッション限定: $env:NAME = value'
+      - 'システムプロパティ(sysdm.cpl)の手動案内'
+      - 'プロファイル($PROFILE)で設定'
+    rel: [registry, powershell, package-management]
+    "no": ['Machine スコープを承認なしで変更しない', 'API キー等の値をログ/出力に表示しない', 'PATH を丸ごと上書きしない']
+    risk: medium
+  - name: package-management
+    d: winget/choco/scoop/pip/npm によるパッケージ管理
+    tr: [winget, choco, scoop, パッケージ, インストール済み]
+    tools: [terminal]
+    opt: [web_search]
+    deps: [winget]
+    steps:
+      - 'winget search <name> で ID を特定し winget show <id> で提供元を確認する'
+      - 'winget list で導入済みと版を確認する'
+      - 'winget install --id <id> -e --source winget で導入する'
+      - 'winget upgrade --all は一覧を提示してから個別に実行する'
+      - '導入後に Get-Command で解決を確認する'
+    verify: 'winget list --id <id> に表示され Get-Command <exe> が成功する'
+    fb:
+      - 'winget 不在: Microsoft Store の App Installer を案内'
+      - 'choco install / scoop install に切替'
+      - '公式ポータブル zip を新規ディレクトリに展開'
+      - 'WSL の apt を使う'
+    rel: [software-installation, environment-variables, supply-chain-review]
+    "no": ['未検証ソース/ミラーから導入しない', '承認なしで全パッケージ一括更新しない', '有償ソフトの購入・ライセンス登録を承認なしで行わない']
+    risk: medium
+  - name: software-installation
+    d: インストーラ(msi/exe/msix)の安全な導入とアンインストール
+    tr: [インストール, msi, setup.exe, アンインストール]
+    tools: [terminal]
+    opt: [web_extract]
+    deps: [winget, msiexec]
+    steps:
+      - '提供元の公式 URL を確認し Get-FileHash でハッシュを照合する'
+      - 'Get-AuthenticodeSignature <file> で署名を確認する'
+      - 'msi は msiexec /i <f> /qn /l*v install.log、exe は /? でサイレントオプションを確認する'
+      - '導入後に Get-Command とレジストリ Uninstall キーで登録を確認する'
+      - 'アンインストールは winget uninstall --id <id> を使う'
+    verify: 'Get-AuthenticodeSignature が Valid で、アプリが --version を返す'
+    fb:
+      - 'package-management の winget/choco に切替'
+      - 'ポータブル版 zip を使う'
+      - 'Windows Sandbox / Docker で事前検証'
+    rel: [package-management, archive-compression, supply-chain-review]
+    "no": ['署名なし/ハッシュ不一致のバイナリを実行しない', '承認なしでドライバ・システムコンポーネントを導入しない', '購入・課金を伴う導入を承認なしで行わない']
+    risk: high
+  - name: archive-compression
+    d: zip/7z/tar の圧縮・展開
+    tr: [zip, 7z, tar, 圧縮, 解凍]
+    tools: [terminal]
+    opt: []
+    deps: [tar, 7z]
+    steps:
+      - '展開先は新規の空ディレクトリを作る(mkdir)'
+      - 'tar -tf <archive> / 7z l <archive> で内容と ../ 絶対パスを事前確認する'
+      - 'Expand-Archive -Path <zip> -DestinationPath <dir> または 7z x <a> -o<dir> で展開する'
+      - '圧縮は Compress-Archive -Path <src>\* -DestinationPath <zip> / 7z a -mx=5 を使う'
+      - '展開後にファイル数と Get-FileHash を確認する'
+    verify: '展開後のファイル数/ハッシュが一覧と一致、7z t <archive> が OK'
+    fb:
+      - 'Expand-Archive 失敗: tar -xf に切替'
+      - '7z 不在: winget install 7zip.7zip'
+      - '大きな zip: .NET System.IO.Compression.ZipFile'
+      - 'WSL の unzip/tar'
+    rel: [filesystem, universal-document-ingestion, security-review]
+    "no": ['信頼できないアーカイブを作業ディレクトリ内で展開・実行しない', '既存フォルダへ上書き展開しない', 'パスワード付きの総当たりをしない']
+    risk: low
+  - name: network-diagnostics
+    d: 接続・DNS・ポート・経路の診断
+    tr: [ネットワーク, ping, DNS, 接続できない, ポート]
+    tools: [terminal]
+    opt: [web_search]
+    deps: [powershell]
+    steps:
+      - 'Get-NetIPConfiguration でアドレス/GW/DNS を確認する'
+      - 'Test-Connection <host> -Count 4 で到達性を確認する'
+      - 'Test-NetConnection <host> -Port <p> でポート疎通を確認する'
+      - 'Resolve-DnsName <host> -Server 1.1.1.1 と既定 DNS を比較する'
+      - 'tracert / pathping で経路を調べ、Get-NetTCPConnection でローカル待受を確認する'
+    verify: 'TcpTestSucceeded : True、または原因層(DNS/経路/FW/サービス)を特定'
+    fb:
+      - 'Test-NetConnection 不可: curl.exe -v / nslookup'
+      - 'ipconfig /all と netsh interface ip show config'
+      - 'Wireshark/pktmon (pktmon start --capture) でキャプチャ'
+      - 'WSL の dig/traceroute'
+    rel: [http-api, network-security-review, logs-event-viewer]
+    "no": ['承認なしでポートスキャン(外部ホスト)をしない', 'ネットワーク設定/FW 規則/DNS を承認なしで変更しない']
+    risk: low
+  - name: http-api
+    d: HTTP API の呼び出し・検証
+    tr: [API, curl, REST, Invoke-RestMethod, HTTP]
+    tools: [terminal]
+    opt: [execute_code, web_extract]
+    deps: [curl.exe]
+    steps:
+      - 'curl.exe -sS -i -X GET "<url>" -H "Accept: application/json" で疎通とヘッダを確認する'
+      - 'PowerShell は Invoke-RestMethod -Uri <url> -Method Post -Body ($o|ConvertTo-Json) -ContentType application/json'
+      - '認証は環境変数($env:API_TOKEN)から参照し直書きしない'
+      - 'ステータスコード・レート制限(Retry-After)・スキーマを確認する'
+      - '書込系は先に GET/dry-run で対象を確認する'
+    verify: 'HTTP 2xx と期待 JSON フィールドを確認'
+    fb:
+      - 'curl.exe 不在: Invoke-WebRequest'
+      - 'TLS 失敗: -v で証明書チェーン確認、時刻確認'
+      - 'Python requests / httpx を使う'
+      - 'Postman/Bruno 相当の手順提示'
+    rel: [network-diagnostics, secret-scan, research]
+    "no": ['トークン/Cookie を出力・ログ・外部へ送らない', '承認なしで POST/DELETE 等の書込を本番 API に送らない', '-k(証明書検証無効)を常用しない']
+    risk: medium
+  - name: ssh
+    d: OpenSSH による接続・鍵管理・ポート転送
+    tr: [ssh, scp, sftp, 鍵, ssh-keygen]
+    tools: [terminal]
+    opt: []
+    deps: [ssh.exe]
+    steps:
+      - 'Get-Command ssh で OpenSSH クライアントを確認する'
+      - 'ssh-keygen -t ed25519 -f $HOME\.ssh\id_ed25519 で鍵を生成する'
+      - '$HOME\.ssh\config に Host/HostName/User/IdentityFile を定義する'
+      - 'ssh -o BatchMode=yes -v <host> "echo ok" で接続を検証する'
+      - 'ポート転送は ssh -L <lp>:<h>:<rp> <host>、転送は scp/sftp を使う'
+    verify: 'ssh <host> "hostname" が成功し期待ホスト名を返す'
+    fb:
+      - '不在: Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0'
+      - 'Git for Windows 同梱 ssh を使う'
+      - 'WSL の ssh を使う'
+      - 'PuTTY/plink (winget install PuTTY.PuTTY)'
+    rel: [remote-execution, permissions-acl, secret-scan]
+    "no": ['秘密鍵・パスフレーズを出力/送信しない', 'StrictHostKeyChecking=no を常用しない', '承認なしで本番ホストでコマンドを実行しない']
+    risk: high
+  - name: remote-execution
+    d: リモートホストでのコマンド実行(WinRM/SSH)
+    tr: [リモート実行, Invoke-Command, WinRM, PSSession]
+    tools: [terminal]
+    opt: []
+    deps: [ssh, winrm]
+    steps:
+      - '対象・目的・実行コマンドを事前に列挙し承認を得る'
+      - 'Test-WSMan <host> または ssh <host> で到達性を確認する'
+      - 'Invoke-Command -ComputerName <h> -ScriptBlock { ... } -Credential $cred(読取系から開始)'
+      - 'PowerShell 7 は -HostName <h> -UserName <u> で SSH トランスポートを使う'
+      - '結果と終了コードを回収し Remove-PSSession で接続を閉じる'
+    verify: '読取系コマンドの出力が期待どおりで PSSession が残っていない'
+    fb:
+      - 'WinRM 不可: ssh <host> "<cmd>"'
+      - 'PsExec (Sysinternals) は承認後のみ'
+      - 'スクリプトを scp で転送し実行を依頼'
+    rel: [ssh, powershell, permission-policy]
+    "no": ['承認なしで本番/他者ホストにコマンドを実行しない', '資格情報を平文でスクリプトに埋め込まない', 'TrustedHosts を * にしない']
+    risk: high
+  - name: remote-desktop-assist
+    d: リモートデスクトップ接続と画面共有の支援
+    tr: [RDP, リモートデスクトップ, mstsc, 画面共有]
+    tools: [terminal, computer_use]
+    opt: [vision_analyze]
+    deps: [mstsc]
+    steps:
+      - 'Test-NetConnection <host> -Port 3389 で RDP 疎通を確認する'
+      - '.rdp ファイルを作成し mstsc <file>.rdp で接続する'
+      - '接続不可なら HKLM:\System\CurrentControlSet\Control\Terminal Server の fDenyTSConnections を読取確認する'
+      - 'NLA/資格情報はユーザー入力に委ね、画面確認は computer_use のスクリーンショットで行う'
+      - '作業後にセッションを切断/サインアウトする'
+    verify: 'mstsc でデスクトップが表示され、サインアウト後にセッション一覧に残らない(query user)'
+    fb:
+      - 'Quick Assist / Windows App を案内'
+      - 'SSH ポートフォワード経由で RDP (ssh -L 3389)'
+      - 'RustDesk 等 (winget) を提案'
+    rel: [ssh, network-diagnostics, windows-control]
+    "no": ['承認なしで RDP を有効化/FW 開放しない', '資格情報を保存・出力しない', '3389 をインターネットへ直接公開しない']
+    risk: high
+  - name: docker
+    d: Docker コンテナ/イメージの実行と管理
+    tr: [docker, コンテナ, イメージ, Dockerfile]
+    tools: [terminal]
+    opt: [read_file, write_file]
+    deps: [docker]
+    steps:
+      - 'docker version と docker info でデーモン稼働(Docker Desktop/WSL2)を確認する'
+      - 'docker build -t <name>:<tag> . で作成、docker run --rm -it -v "${PWD}:/work" <img> で実行する'
+      - 'docker ps -a / docker logs --tail 100 <c> で状態を確認する'
+      - 'docker inspect <c> で env/mount/port を確認する'
+      - '不要物は docker system df で確認してから個別に削除する'
+    verify: 'docker ps に期待コンテナが Up、またはコンテナ終了コードが 0'
+    fb:
+      - 'デーモン停止: Docker Desktop 起動 / wsl --status 確認'
+      - '不在: winget install Docker.DockerDesktop'
+      - 'WSL 内の docker/podman を使う'
+      - 'Windows Sandbox / VM で代替'
+    rel: [docker-compose, wsl-linux, secret-scan]
+    "no": ['docker system prune -a --volumes を承認なしで実行しない', '--privileged やホスト全体マウントを不要に使わない', 'Secret をイメージに焼き込まない', 'レジストリへ承認なしで push しない']
+    risk: medium
+  - name: docker-compose
+    d: docker compose による複数コンテナ構成の管理
+    tr: [docker compose, compose.yaml, マルチコンテナ]
+    tools: [terminal, read_file]
+    opt: [write_file, patch]
+    deps: [docker]
+    steps:
+      - 'docker compose config で展開後の構成を検証する'
+      - 'docker compose up -d --build で起動する'
+      - 'docker compose ps と docker compose logs -f --tail 100 <svc> で確認する'
+      - 'healthcheck と depends_on: condition: service_healthy を確認する'
+      - '停止は docker compose down(-v は承認後のみ)'
+    verify: 'docker compose ps が全サービス running/healthy'
+    fb:
+      - 'docker-compose (v1) コマンドに切替'
+      - 'ポート競合: Get-NetTCPConnection -LocalPort で解消'
+      - 'サービス単体を docker run で再現'
+    rel: [docker, wsl-linux, debugging]
+    "no": ['down -v でボリュームを承認なしで削除しない', '.env の Secret を出力/コミットしない']
+    risk: medium
+  - name: wsl-linux
+    d: WSL2 の Linux 環境操作とファイル連携
+    tr: [WSL, wsl.exe, Ubuntu, Linux]
+    tools: [terminal]
+    opt: []
+    deps: [wsl.exe]
+    steps:
+      - 'wsl -l -v で distro とバージョンを確認する'
+      - 'wsl -d <distro> -- bash -lc "<cmd>" でコマンドを実行する'
+      - 'Windows パスは wslpath -u "C:\path"、WSL 側は \\wsl$\<distro>\ で参照する'
+      - 'I/O 性能のため作業は WSL 側ファイルシステム(~/)に置く'
+      - '導入は wsl --install -d Ubuntu(管理者・再起動が必要な場合あり)'
+    verify: 'wsl -d <distro> -- uname -a が成功'
+    fb:
+      - 'wsl --update / wsl --shutdown 後に再試行'
+      - '仮想化無効: BIOS と Get-ComputerInfo の HyperV 要件を確認'
+      - 'Git Bash / Docker コンテナで代替'
+    rel: [docker, powershell, filesystem]
+    "no": ['wsl --unregister を承認なしで実行しない(distro データ全消失)', 'システム設定(.wslconfig)を無断変更しない']
+    risk: medium
+  - name: system-monitoring
+    d: CPU/メモリ/ディスク/ネットワーク使用状況の監視
+    tr: [負荷, CPU, メモリ, 重い, パフォーマンス]
+    tools: [terminal]
+    opt: [execute_code]
+    deps: [powershell]
+    steps:
+      - 'Get-Counter "\Processor(_Total)\% Processor Time","\Memory\Available MBytes" -SampleInterval 2 -MaxSamples 5'
+      - 'Get-Process | Sort WS -Descending | Select -First 10 Name,Id,WS で上位プロセスを確認する'
+      - 'Get-PSDrive -PSProvider FileSystem でディスク空きを確認する'
+      - 'typeperf / Get-Counter "\PhysicalDisk(*)\Avg. Disk Queue Length" で I/O 待ちを見る'
+      - '結果をベースラインと比較して要因を報告する'
+    verify: '主要指標の数値とボトルネック要因を提示'
+    fb:
+      - 'Get-Counter 失敗: lodctr /R 後に再試行(承認後)'
+      - 'Get-CimInstance Win32_OperatingSystem 等の WMI 値を使う'
+      - 'perfmon / Resource Monitor (resmon) 案内'
+      - 'Sysinternals Process Explorer'
+    rel: [process-management, hardware-diagnostics, storage-management]
+    "no": ['監視のためにサービスを停止/再設定しない']
+    risk: low
+  - name: hardware-diagnostics
+    d: ハードウェア情報の取得と障害診断
+    tr: [ハードウェア, スペック, デバイス, ドライバ, SMART]
+    tools: [terminal]
+    opt: []
+    deps: [powershell]
+    steps:
+      - 'Get-ComputerInfo / Get-CimInstance Win32_Processor,Win32_PhysicalMemory で構成を取得する'
+      - 'Get-PnpDevice -Status Error でエラーデバイスを列挙する'
+      - 'Get-PhysicalDisk | Get-StorageReliabilityCounter で SMART 相当値を見る'
+      - 'powercfg /batteryreport で電池状態を出力する'
+      - 'Get-WinEvent -FilterHashtable @{LogName=''System''; Level=1,2} で WHEA/disk エラーを確認する'
+    verify: '構成一覧とエラーデバイス/イベントの有無を提示'
+    fb:
+      - 'msinfo32 /report <file> / dxdiag /t <file>'
+      - 'wmic(旧環境のみ) や systeminfo'
+      - 'CrystalDiskInfo / HWiNFO (winget) を導入'
+    rel: [gpu-nvidia, storage-management, logs-event-viewer]
+    "no": ['ドライバ更新・BIOS 更新・デバイス無効化を承認なしで行わない', 'chkdsk /f や ディスク修復を承認なしで実行しない']
+    risk: low
+  - name: gpu-nvidia
+    d: NVIDIA GPU の状態確認とドライバ/CUDA 診断
+    tr: [NVIDIA, GPU, nvidia-smi, CUDA, VRAM]
+    tools: [terminal]
+    opt: []
+    deps: [nvidia-smi]
+    steps:
+      - 'nvidia-smi で GPU/ドライバ/CUDA 版と VRAM 使用量を確認する'
+      - 'nvidia-smi --query-gpu=name,temperature.gpu,utilization.gpu,memory.used,memory.total --format=csv -l 2'
+      - 'nvidia-smi --query-compute-apps=pid,name,used_memory --format=csv でプロセス別使用を見る'
+      - 'nvcc --version と python -c "import torch;print(torch.cuda.is_available())" で CUDA を確認する'
+      - 'WDDM TDR 疑いは System ログの nvlddmkm イベントを確認する'
+    verify: 'nvidia-smi が正常終了し期待 GPU・ドライバ版を表示'
+    fb:
+      - 'nvidia-smi 不在: C:\Windows\System32\nvidia-smi.exe か NVSMI フォルダを確認'
+      - 'Get-CimInstance Win32_VideoController で認識確認'
+      - 'GeForce Experience / 公式ドライバ導入を案内(承認後)'
+      - 'dxdiag /t で情報取得'
+    rel: [hardware-diagnostics, graphics-debugging, system-monitoring]
+    "no": ['ドライバ導入/ロールバック/クロック設定変更を承認なしで行わない', 'ユーザーのプロセスを GPU 解放のため勝手に kill しない']
+    risk: low
+  - name: storage-management
+    d: ディスク・パーティション・容量の確認と整理
+    tr: [ディスク, 容量, パーティション, ドライブ, 空き]
+    tools: [terminal]
+    opt: []
+    deps: [powershell]
+    steps:
+      - 'Get-Volume と Get-Disk | Get-Partition で構成と空き容量を確認する'
+      - 'Get-ChildItem <dir> -Recurse -File | Group-Object Directory | 合計サイズ降順 で大容量箇所を特定する'
+      - 'Optimize-Volume -DriveLetter C -Analyze で最適化要否を確認する'
+      - '削除候補は一覧を提示し承認後に実施する(Clear-RecycleBin 等)'
+      - '操作後に Get-Volume で空き容量の変化を確認する'
+    verify: 'Get-Volume の SizeRemaining が期待どおり'
+    fb:
+      - 'cleanmgr / Storage Sense の手順を案内'
+      - 'WizTree / TreeSize を winget で導入'
+      - 'dism /Online /Cleanup-Image /AnalyzeComponentStore'
+    rel: [filesystem, backup-restore, hardware-diagnostics]
+    "no": ['Format-Volume / Clear-Disk / diskpart clean を承認なしで実行しない', 'パーティション変更を承認なしで行わない', 'WinSxS を手動削除しない']
+    risk: high
+  - name: backup-restore
+    d: ファイル/設定のバックアップと復元
+    tr: [バックアップ, 復元, リストア, 履歴, スナップショット]
+    tools: [terminal]
+    opt: [read_file]
+    deps: [robocopy, wbadmin]
+    steps:
+      - '対象と保存先(別ドライブ推奨)、空き容量を Get-Volume で確認する'
+      - 'robocopy <src> <dst>\<date> /E /COPY:DAT /R:1 /W:1 /LOG:backup.log でコピーする'
+      - 'Get-FileHash の比較か robocopy /L で差分ゼロを確認する'
+      - 'システム設定は reg export や Checkpoint-Computer(管理者)で保存する'
+      - '復元は別ディレクトリへ試験復元してから本番へ戻す'
+    verify: 'ログに失敗 0、ハッシュ/件数が一致'
+    fb:
+      - 'robocopy 不可: Copy-Item -Recurse または 7z で圧縮'
+      - 'ロック中ファイル: vssadmin / Shadow Copy(承認後)'
+      - 'git bundle / git stash で退避'
+    rel: [filesystem, checkpoint, archive-compression]
+    "no": ['robocopy /MIR を宛先未確認で使わない', '復元で既存データを承認なしで上書きしない', 'バックアップを外部クラウドへ承認なしで送らない']
+    risk: medium
+  - name: permissions-acl
+    d: ファイル/フォルダの ACL・所有者・権限の確認と変更
+    tr: [権限, ACL, icacls, アクセス拒否, 所有者]
+    tools: [terminal]
+    opt: []
+    deps: [icacls]
+    steps:
+      - 'icacls "<path>" / Get-Acl <path> | Format-List で現在の ACL を確認する'
+      - 'icacls <path> /save acl.bak /T で変更前 ACL を保存する'
+      - 'whoami /groups と whoami /priv で実行ユーザーの権限を確認する'
+      - '必要最小限のみ icacls <path> /grant "<user>:(R)" で付与する(継承は /inheritance:e)'
+      - '復元は icacls <dir> /restore acl.bak'
+    verify: 'icacls の出力が意図した ACE のみで対象操作が成功する'
+    fb:
+      - 'Set-Acl (System.Security.AccessControl) を使う'
+      - 'takeown /f <path> は所有者確認後のみ'
+      - '管理者昇格を依頼'
+    rel: [filesystem, permission-audit, registry]
+    "no": ['Everyone:F の付与や /T による広範囲変更を承認なしで行わない', 'システムフォルダの ACL を変更しない', 'takeown /R を承認なしで実行しない']
+    risk: high
+  - name: scheduled-tasks
+    d: タスクスケジューラの作成・確認・削除
+    tr: [タスクスケジューラ, 定期実行, schtasks, 自動実行]
+    tools: [terminal]
+    opt: [cronjob]
+    deps: [schtasks]
+    steps:
+      - 'Get-ScheduledTask -TaskPath "\" | Get-ScheduledTaskInfo で既存を確認する'
+      - 'New-ScheduledTaskAction -Execute pwsh.exe -Argument "-NoProfile -File <script>" を定義する'
+      - 'New-ScheduledTaskTrigger -Daily -At 03:00 と Register-ScheduledTask -TaskName <n> で登録する'
+      - 'Start-ScheduledTask 後に LastTaskResult が 0 であることを確認する'
+      - '登録内容は Export-ScheduledTask で XML 保存する'
+    verify: '(Get-ScheduledTaskInfo <n>).LastTaskResult -eq 0'
+    fb:
+      - 'schtasks /create /tn <n> /tr <cmd> /sc daily に切替'
+      - 'Hermes cronjob ツールで代替'
+      - 'ログ確認: Microsoft-Windows-TaskScheduler/Operational'
+    rel: [powershell, logs-event-viewer, permission-policy]
+    "no": ['SYSTEM/最上位権限での登録を承認なしで行わない', '既存タスクの削除/上書きを承認なしで行わない', '起動時自動実行の永続化を黙って追加しない']
+    risk: medium
+  - name: logs-event-viewer
+    d: イベントログとアプリログの調査
+    tr: [イベントログ, Get-WinEvent, ログ調査, エラー原因]
+    tools: [terminal, search_files]
+    opt: [read_file]
+    deps: [powershell, wevtutil]
+    steps:
+      - 'Get-WinEvent -ListLog * | Where RecordCount で有効ログを確認する'
+      - 'Get-WinEvent -FilterHashtable @{LogName=''Application'',''System''; Level=1,2; StartTime=(Get-Date).AddHours(-6)}'
+      - 'ProviderName / Id で絞り Message を Select-Object -First 20 で確認する'
+      - '時刻をユーザーの事象と突合し前後イベントを確認する'
+      - 'wevtutil epl System <file>.evtx で証跡を保存する'
+    verify: '事象時刻に対応するイベント ID と原因候補を提示'
+    fb:
+      - 'Get-EventLog (5.1) に切替'
+      - 'wevtutil qe System /c:20 /rd:true /f:text'
+      - 'Security ログは管理者権限が必要→昇格を依頼'
+      - 'アプリ側ログは Select-String で検索'
+    rel: [debugging, service-management, system-monitoring]
+    "no": ['wevtutil cl 等でログを消去しない', 'ログ内の個人情報/Secret を外部送信しない']
+    risk: low

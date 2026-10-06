@@ -1,0 +1,336 @@
+category: automation
+defaults:
+  tools: [terminal]
+  fallback: ['tool-missing: Get-Command/where → winget/pip/npm/choco 導入 → portable 版 → Docker/WSL → 代替ツール']
+  risk: low
+skills:
+  - name: cron-scheduled-work
+    d: cronjob / hermes cron で定期・予約タスクを設定
+    tr: [定期実行, スケジュール, cron, 毎日, 毎朝]
+    tools: [cronjob, terminal]
+    opt: [read_file]
+    deps: [hermes]
+    steps:
+      - '実行内容・頻度・タイムゾーン(JST)・成功/失敗時の通知先を確認'
+      - 'cronjob ツールで登録（CLI なら hermes cron list / hermes cron --help で構文確認）'
+      - 'プロンプトは自己完結に書く（前提・パス・完了条件を含める）'
+      - '初回は手動で1回試走し出力を確認'
+      - 'hermes cron list で登録内容と次回実行時刻を確認'
+    verify: 'hermes cron list に表示され、試走で期待出力が得られた'
+    fb:
+      - 'cronjob 不可 → Windows タスクスケジューラ: schtasks /Create /SC DAILY /ST 09:00 /TN name /TR "cmd"'
+      - 'Register-ScheduledTask (PowerShell)'
+      - 'WSL の cron'
+    rel: [workflow-orchestration, status-reporting, long-running-task, permission-policy]
+    "no": ['外部送信/課金/公開を伴う定期ジョブを承認なしに登録しない', 'Secret をプロンプトに直書きしない', '高頻度ジョブで API 消費を暴走させない']
+    risk: medium
+  - name: overnight-autonomy
+    d: 夜間・不在時に承認不要範囲で自律的に作業を進める
+    tr: [夜間, 放置, 寝てる間, overnight, 不在]
+    tools: [terminal, todo]
+    opt: [cronjob, delegate_task, memory]
+    deps: []
+    steps:
+      - '/overnight で開始。作業リストを todo に作り優先度順 (task-prioritization) に並べる'
+      - '承認が必要な項目は実行せず「朝の確認事項」に積む（permission-policy）'
+      - '各タスク前に checkpoint を作成し、失敗時は failure-recovery / rollback'
+      - '進捗とログを定期的にファイルへ書き出す (status-reporting)'
+      - '終了時に完了/未完/要承認のサマリを作成。再開用に task-resume 情報を残す'
+    verify: 'サマリに全タスクの状態があり、変更が git diff / checkpoint で確認できる'
+    fb:
+      - '行き詰まり → 次タスクへ進み停止理由を記録'
+      - 'ツール不能 → fallback の代替経路'
+      - '継続不可 → 状態を保存して安全に停止'
+    rel: [goal-driven-autonomy, checkpoint, rollback, status-reporting, task-resume, permission-policy]
+    "no": ['承認対象（大量削除/外部送信/公開/課金/システム設定）を無人で実行しない', 'force push・本番変更をしない', 'Secret を出力しない']
+    risk: high
+  - name: goal-driven-autonomy
+    d: /goal の達成条件に向けて自律的に計画・実行・検証
+    tr: [ゴール, goal, 目標達成まで, overnight-goal]
+    tools: [terminal, todo]
+    opt: [delegate_task, memory]
+    deps: []
+    steps:
+      - '/goal（夜間は /overnight-goal）で達成条件を測定可能な形に明文化'
+      - 'サブタスクへ分解し todo 管理、依存順で実行'
+      - '各ステップ後にテスト/コマンドで進捗を検証し、ゴールとの差分を再評価'
+      - '失敗は failure-recovery で別経路へ、同一失敗の繰返しは3回で打切り'
+      - '達成条件の検証結果をもって完了宣言'
+    verify: '達成条件が実コマンド出力で検証済み、todo が全て完了/理由付き未完'
+    fb:
+      - '条件が曖昧 → 解釈を明記して clarify'
+      - '達成不能 → 到達点と阻害要因を報告'
+      - '長時間化 → long-running-task へ'
+    rel: [overnight-autonomy, verification, failure-recovery, task-prioritization]
+    "no": ['達成条件を勝手に緩めない', '承認対象操作を目標のためでも無断実行しない']
+    risk: medium
+  - name: long-running-task
+    d: 長時間処理をバックグラウンド実行し監視・再開可能にする
+    tr: [長時間, バックグラウンド, 時間がかかる, ビルド待ち]
+    tools: [terminal, process]
+    opt: [cronjob]
+    deps: []
+    steps:
+      - 'process / terminal のバックグラウンド実行で起動し、出力をログへ: cmd *> $env:TEMP\job.log'
+      - 'PID・開始時刻・ログパスを記録 (Get-Process -Id)'
+      - '定期的に Get-Content job.log -Tail 20 で進捗を確認（sleep 連打を避ける）'
+      - 'タイムアウトと再実行可能性（冪等・途中再開）を設計'
+      - '完了後に exit code と成果物を検証'
+    verify: 'プロセス終了、exit code 0、ログ末尾に完了表示、成果物存在'
+    fb:
+      - 'ハング → 出力停止時間で判定し再起動'
+      - 'セッション断絶対策 → Start-Process -WindowStyle Hidden / タスクスケジューラ'
+      - 'WSL の tmux / nohup'
+    rel: [status-reporting, task-resume, failure-recovery, cron-scheduled-work]
+    "no": ['孤児プロセスを残さない', '他ユーザー/無関係プロセスを kill しない']
+    risk: low
+  - name: rollback
+    d: 変更を /rollback・/snapshot・git で安全に巻き戻す
+    tr: [ロールバック, 元に戻す, 巻き戻し, undo, revert]
+    tools: [terminal]
+    opt: [read_file]
+    deps: [git]
+    steps:
+      - '/snapshot で現在状態を保存してから戻す（巻き戻しも元に戻せるように）'
+      - '対象を特定: /rollback の一覧、git log --oneline、git status'
+      - '未コミットは git restore <path>、コミット済は git revert <sha>（履歴を残す）'
+      - '/rollback でファイルシステム checkpoint から復元'
+      - '復元後にテスト/diff で状態を確認'
+    verify: 'git diff / git status が期待状態で、テストが通る'
+    fb:
+      - 'checkpoint 無し → git reflog から復旧'
+      - 'git 管理外 → バックアップ (*.bak) や Windows のファイル履歴/シャドウコピー'
+      - '復旧不能箇所は明示して報告'
+    rel: [checkpoint, git, failure-recovery, permission-policy]
+    "no": ['git reset --hard / clean -fd / force push は承認なしに実行しない', '他者・未保存の変更を巻き込んで破棄しない']
+    risk: high
+  - name: git-worktree
+    d: git worktree で並行作業用の独立作業ツリーを使う
+    tr: [worktree, 並行ブランチ, 別ブランチで作業, /worktree]
+    tools: [terminal]
+    opt: [read_file]
+    deps: [git]
+    steps:
+      - 'git worktree list で現状確認、git status がクリーンか確認'
+      - 'git worktree add ..\repo-feat -b feat/x main （/worktree でも可）'
+      - '新ツリーで作業・テスト（node_modules/venv は別途用意）'
+      - '完了後マージ/PR 化 → git worktree remove ..\repo-feat; git worktree prune'
+    verify: 'git worktree list に期待通り表示、削除後に prune 済み'
+    fb:
+      - 'worktree 不可 → git clone --local / 別ブランチ + stash'
+      - '長いパス問題 → git config core.longpaths true'
+    rel: [git, parallel-execution, subagent-delegation, checkpoint]
+    "no": ['未コミット変更のある worktree を --force 削除しない', 'push/マージは承認なしにしない', '同一ブランチを複数ツリーで checkout しない']
+    risk: low
+  - name: subagent-delegation
+    d: delegate_task でサブエージェントへ作業を委譲
+    tr: [サブエージェント, 委譲, delegate, 子エージェント]
+    tools: [delegate_task]
+    opt: [read_file, todo]
+    deps: []
+    steps:
+      - '委譲対象を選定（大規模探索・独立タスク・並列可能なもの）。小さい作業は自分で行う'
+      - 'goal・対象パス・完了条件・出力形式を自己完結で記述（子は文脈を持たない）'
+      - '重要度に応じてモデル選択 (model-router)、調査系は readonly'
+      - '結果を鵜呑みにせず、主要な主張を自分でコマンド/ファイル確認'
+      - '統合して報告'
+    verify: '委譲結果の主要点を独立に再確認し、完了条件を満たしている'
+    fb:
+      - '委譲失敗 → タスクを分割して再委譲'
+      - '失敗継続 → 自分で実行'
+    rel: [multi-agent, parallel-execution, model-router, independent-review]
+    "no": ['Secret・認証情報を子に渡さない', '子に承認対象操作を任せない', '結果を未検証で採用しない']
+    risk: low
+  - name: multi-agent
+    d: 複数エージェントの役割分担と統合で大規模作業を進める
+    tr: [マルチエージェント, 役割分担, 並列エージェント, kanban]
+    tools: [delegate_task, todo]
+    opt: [terminal]
+    deps: []
+    steps:
+      - '作業を独立単位に分け、役割（調査/実装/レビュー）と担当ファイル範囲を定義'
+      - 'kanban/todo にタスクと担当を登録し、衝突を避けるため担当ファイルを分離（git-worktree 併用）'
+      - '各エージェントへ自己完結のプロンプトを渡し並列起動 (parallel-execution)'
+      - '成果を統合し independent-review で相互検証'
+      - '競合・重複を解消して最終テスト'
+    verify: '統合後に全テスト通過、担当範囲の重複編集が無い (git diff --stat)'
+    fb:
+      - '競合多発 → 直列化'
+      - 'エージェント失敗 → 再割当/自分で実行'
+    rel: [subagent-delegation, workflow-orchestration, git-worktree, independent-review]
+    "no": ['同一ファイルを複数エージェントが同時編集しない', '承認対象操作を子に任せない']
+    risk: medium
+  - name: workflow-orchestration
+    d: 複数ステップの作業を依存関係付きで設計・実行・追跡
+    tr: [ワークフロー, パイプライン, 段取り, オーケストレーション]
+    tools: [terminal, todo]
+    opt: [delegate_task, cronjob]
+    deps: []
+    steps:
+      - '工程を列挙し入出力・依存・失敗時動作・検証点を定義'
+      - 'todo に登録し、各工程の完了条件を実コマンドで定義'
+      - '工程ごとに checkpoint を置き順に実行、独立工程は parallel-execution'
+      - '失敗工程は failure-recovery、再実行は冪等に'
+      - '全体結果を status-reporting で報告'
+    verify: '全工程の完了条件を満たす実行ログがあり、todo が全て完了'
+    fb:
+      - '複雑化 → 工程を縮小して直列実行'
+      - 'スクリプト化: PowerShell .ps1 に工程を関数化'
+    rel: [parallel-execution, task-prioritization, failure-recovery, cron-scheduled-work]
+    "no": ['承認が必要な工程を自動で進めない', '依存を無視して並列化しない']
+    risk: low
+  - name: parallel-execution
+    d: 独立タスクを並列実行して時間短縮する
+    tr: [並列, 同時実行, parallel, 並行処理]
+    tools: [terminal, process]
+    opt: [delegate_task]
+    deps: [pwsh]
+    steps:
+      - '独立性（共有ファイル/ポート/DB が無い）を確認'
+      - 'ツール呼び出しは同一メッセージ内で並列発行、コマンドは PowerShell 7 の ForEach-Object -Parallel -ThrottleLimit 4'
+      - 'ジョブ: Start-Job / Wait-Job / Receive-Job（5.1 でも可）'
+      - 'リソース上限（CPU/メモリ/API レート）に合わせ並列度を制限'
+      - '全結果と失敗を収集し集約'
+    verify: '全ジョブの終了状態と出力を収集済みで、逐次実行と結果が一致'
+    fb:
+      - 'pwsh 無し → winget install Microsoft.PowerShell / Start-Job'
+      - '競合発生 → 直列化'
+      - '重い作業は delegate_task'
+    rel: [workflow-orchestration, subagent-delegation, long-running-task, git-worktree]
+    "no": ['同一ファイルへ並列書込しない', 'API レート上限・課金を無視した大量並列をしない']
+    risk: low
+  - name: task-prioritization
+    d: タスクを緊急度・重要度・依存で優先順位付け (/priorities)
+    tr: [優先順位, 優先度, priorities, 何からやる]
+    tools: [todo]
+    opt: [memory, terminal]
+    deps: []
+    steps:
+      - 'todo と進行中案件を集め、期限・影響・工数・依存・ブロッカーを整理'
+      - '重要度×緊急度で分類し、依存順とクイックウィンを加味して並べる'
+      - '/priorities で上位 3 件と理由を提示'
+      - '状況変化があれば再評価'
+    verify: '各タスクに順位と根拠があり、依存関係が矛盾しない'
+    fb:
+      - '情報不足 → 前提を明記して暫定順位 + clarify'
+      - 'todo 空 → git log / 未完了ファイルから候補抽出'
+    rel: [task-resume, workflow-orchestration, status-reporting, goal-driven-autonomy]
+    "no": ['ユーザーの明示優先度を無断で覆さない', '期限を推測で断定しない']
+    risk: low
+  - name: task-resume
+    d: 中断した作業を状態復元して再開 (/pickup)
+    tr: [再開, 続き, pickup, 前回の続き, 中断]
+    tools: [terminal, todo]
+    opt: [session_search, memory, read_file]
+    deps: [git]
+    steps:
+      - '/pickup または session_search で直近の作業・todo を確認'
+      - 'git status; git log -5 --oneline; git diff --stat で実際の状態を把握'
+      - '記憶と実状態の差分を確認（古い情報を鵜呑みにしない）'
+      - '未完了項目を todo に再構成し、次の一手から再開'
+      - '再開点を報告'
+    verify: '実リポジトリ状態と todo が整合し、再開タスクが特定されている'
+    fb:
+      - '履歴が無い → git reflog / ファイル更新時刻 (Get-ChildItem | Sort LastWriteTime)'
+      - '不明点は clarify'
+    rel: [status-reporting, checkpoint, long-running-task, task-prioritization]
+    "no": ['記憶だけを根拠に破壊的操作を再実行しない', '未コミット変更を破棄しない']
+    risk: low
+  - name: status-reporting
+    d: 進捗・結果・未完事項を簡潔で正確に報告
+    tr: [進捗報告, ステータス, 報告, 状況まとめ]
+    tools: [todo]
+    opt: [terminal, read_file]
+    deps: [git]
+    steps:
+      - 'todo と git diff --stat / テスト結果から事実を収集'
+      - '完了・進行中・ブロック・要承認 に分類'
+      - '各項目に証跡 (file:line, コマンド結果) を付与'
+      - '次のアクションと所要の判断をユーザー向けに 1-4 行で提示'
+    verify: '報告内の完了項目すべてに検証証跡があり、未検証は明記されている'
+    fb:
+      - '長時間ジョブ → ログ tail で最新状態を取得してから報告'
+      - '情報欠落 → 不明と明記'
+    rel: [verification, task-resume, long-running-task, overnight-autonomy]
+    "no": ['未検証を完了と報告しない', '失敗を隠さない', 'Secret を報告に含めない', '外部への報告送信は承認なしにしない']
+    risk: low
+  - name: failure-recovery
+    d: 失敗の原因分類と代替経路での復旧
+    tr: [失敗, エラー復旧, リトライ, 詰まった]
+    tools: [terminal]
+    opt: [read_file, search_files]
+    deps: []
+    steps:
+      - 'エラー全文・exit code を確認し分類（tool-missing/権限/パス/ネットワーク/構文/仕様）'
+      - '同一コマンドの無策再試行は避け、原因に応じて修正（パス引用・実行ポリシー・エンコーディング UTF-8）'
+      - 'fallback の順に代替経路へ（導入→portable→Docker/WSL→別ツール）'
+      - '変更途中の失敗は checkpoint/rollback で一貫状態へ戻す'
+      - '3経路で失敗したら状況・試行・残案を報告'
+    verify: '復旧後に元の目的コマンドが成功、または試行履歴付きで報告されている'
+    fb:
+      - '権限不足 → 昇格要否をユーザーに確認'
+      - 'ネットワーク → オフライン代替/キャッシュ'
+      - 'doctor で環境診断'
+    rel: [fallback, debugging, rollback, doctor, checkpoint]
+    "no": ['「できない」だけで終えない', '権限回避のためセキュリティ設定を無断変更しない', 'テスト弱体化で回避しない']
+    risk: low
+  - name: environment-bootstrap
+    d: 新規 Windows 環境の開発ツールと依存を整備
+    tr: [環境構築, セットアップ, bootstrap, 初期設定, 開発環境]
+    tools: [terminal, read_file]
+    opt: [write_file]
+    deps: [winget, python, node, git]
+    steps:
+      - '現状診断: Get-Command git,python,node,pwsh,rg -ErrorAction SilentlyContinue; winget --version'
+      - '不足分を winget install Git.Git / Python.Python.3.12 / OpenJS.NodeJS.LTS / Microsoft.PowerShell'
+      - 'プロジェクト依存: python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r requirements.txt / npm ci'
+      - 'PATH 反映（新しいシェル）と実行ポリシー確認 Get-ExecutionPolicy -List'
+      - 'smoke test（--version とテスト1本）を実行し doctor で最終診断'
+    verify: '各ツール --version が成功し、プロジェクトのテストが実行できる'
+    fb:
+      - 'winget 不可 → choco / scoop / 公式 installer / portable zip'
+      - 'ネイティブ不可 → WSL / Docker'
+      - '管理者権限が要る場合はユーザーへ確認'
+    rel: [doctor, powershell, filesystem, fallback]
+    "no": ['システム全体設定(PATH/ポリシー/レジストリ)の変更は承認なしにしない', '出所不明のインストーラを実行しない', 'Secret を設定ファイルへ平文で書かない']
+    risk: medium
+  - name: self-update
+    d: hermes update で Hermes 本体を安全に更新
+    tr: [アップデート, hermes update, 更新, バージョンアップ]
+    tools: [terminal]
+    opt: [read_file]
+    deps: [hermes, git]
+    steps:
+      - '現状: hermes --version; 設定/skills のバックアップ（checkpoint）を作成'
+      - '実行中のジョブ (hermes cron list / プロセス) が無いことを確認'
+      - 'hermes update を実行し出力を確認'
+      - 'hermes --version と hermes doctor で更新後の状態確認'
+      - 'カスタム skills は scripts\sync-hermes-skills.ps1 で再同期'
+    verify: 'バージョンが上がり、hermes doctor が正常、再同期後に skills が有効'
+    fb:
+      - '更新失敗 → 出力を確認し hermes update を再試行 / git pull（導入元が git の場合）'
+      - '破損 → バックアップ・checkpoint から復元（rollback）'
+      - '再インストール手順を公式ドキュメントで確認'
+    rel: [skill-update, doctor, rollback, environment-bootstrap]
+    "no": ['バックアップ無しで更新しない', '認証情報・設定を出力/送信しない', '稼働中ジョブを中断しない']
+    risk: medium
+  - name: skill-update
+    d: skill の追加・更新を catalog から生成し Hermes へ同期
+    tr: [スキル更新, skill同期, sync, カタログ更新]
+    tools: [terminal, read_file]
+    opt: [skill_manage, patch]
+    deps: [python, pwsh]
+    steps:
+      - 'skills/catalog/<category>.yaml を編集（SCHEMA.md 準拠、d は 60 文字以内）'
+      - 'YAML 検証: python -c "import yaml;yaml.safe_load(open(f,encoding=''utf-8''))"'
+      - 'python scripts/kiridev_skills.py build で SKILL.md を生成（手書き SKILL.md は上書きされない）'
+      - 'pwsh scripts\sync-hermes-skills.ps1 で Hermes へ同期'
+      - 'skills_list / skill_view で反映を確認し git diff で変更を確認'
+    verify: 'build が成功し、skills_list に新規/更新 skill が表示される'
+    fb:
+      - 'sync スクリプト失敗 → 出力先ディレクトリを手動確認し Copy-Item で配置'
+      - 'skill_manage ツールで個別登録'
+      - 'powershell.exe 5.1 でも実行を試す'
+    rel: [self-update, strata, filesystem, git]
+    "no": ['手書き SKILL.md を上書きしない', '同期先の無関係な skill を削除しない', 'commit/push は承認なしにしない']
+    risk: low

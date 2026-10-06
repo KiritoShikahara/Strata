@@ -1,0 +1,292 @@
+category: web-backend
+defaults:
+  tools: [terminal]
+  fallback: ['tool-missing: Get-Command → winget/npm/pip で導入 → 代替ツール']
+  risk: low
+skills:
+  - name: frontend
+    d: フロントエンド実装・UI 確認・ビルド全般
+    tr: [フロントエンド, UI, Vite, レスポンシブ, 画面実装]
+    tools: [terminal, read_file, write_file, patch]
+    opt: [browser_navigate, browser_snapshot, browser_vision]
+    deps: [node, npm]
+    steps:
+      - 'package.json の scripts と使用フレームワーク（vite/next 等）を確認する'
+      - 'npm install 後 npm run dev で起動し、browser_navigate で http://localhost:5173 等を開く'
+      - 'コンポーネント単位で実装し、状態・アクセシビリティ（aria/label）を満たす'
+      - 'browser_snapshot とスクリーンショットでレイアウトを幅 360/768/1280 で確認する'
+      - 'npm run lint / npm run build / npm test を通す'
+    verify: 'npm run build が終了コード 0 で、ブラウザのコンソールにエラーが無く画面が期待通り'
+    fb:
+      - 'winget install OpenJS.NodeJS.LTS で Node を導入'
+      - 'ポート競合は --port を変更、node_modules 破損は削除して npm ci'
+      - 'ブラウザ操作不可なら Playwright（npx playwright test）で確認'
+    rel: [html-css, react, nodejs, api-design, testing]
+    no:
+      - '本番へのデプロイ・公開は承認なしで行わない'
+      - 'API キー等の Secret をクライアントコードへ埋め込まない'
+    risk: low
+  - name: html-css
+    d: セマンティック HTML と CSS（Flex/Grid）の実装・修正
+    tr: [HTML, CSS, Flexbox, Grid, レイアウト崩れ, スタイル]
+    tools: [read_file, write_file, patch]
+    opt: [browser_navigate, browser_snapshot, browser_vision]
+    deps: []
+    steps:
+      - '既存の HTML 構造と CSS の適用範囲（クラス/変数/リセット）を確認する'
+      - 'header/nav/main/section/button など意味に合う要素を使い、見出し階層を守る'
+      - 'レイアウトは Flexbox/Grid、色・余白は CSS 変数、幅は @media / clamp() で調整する'
+      - 'ブラウザの DevTools 相当（browser_snapshot）で適用スタイルとオーバーフローを確認する'
+      - 'コントラスト比（4.5:1 以上）とキーボード操作（focus-visible）を確認する'
+    verify: '幅 360/768/1280px で崩れず、W3C バリデータ/ Lighthouse のアクセシビリティ指摘が無い'
+    fb:
+      - 'npx html-validate / npx stylelint で静的検査する'
+      - 'ブラウザ操作不可なら Playwright でスクリーンショットを取得'
+      - 'CSS 競合は詳細度を確認し !important に頼らず構造で解決'
+    rel: [frontend, react, charting]
+    no:
+      - '!important の乱用やインライン style の多用をしない'
+      - '外部 CDN の未検証スクリプトを追加しない'
+    risk: low
+  - name: react
+    d: React コンポーネント・フック・状態管理の実装
+    tr: [React, useState, useEffect, JSX, Next.js, コンポーネント]
+    tools: [terminal, read_file, write_file, patch]
+    opt: [browser_snapshot, search_files]
+    deps: [node, npm, react]
+    steps:
+      - 'package.json の React バージョンとビルド構成（Vite/Next）を確認する'
+      - 'props 設計を先に決め、状態は必要最小限で最も近い共通親に置く'
+      - 'useEffect は同期目的に限定し依存配列を正しく書く（eslint-plugin-react-hooks）'
+      - '非同期データは取得ライブラリ（TanStack Query）か Suspense でエラー/ローディング状態も実装する'
+      - 'Testing Library と Vitest/Jest でユーザー操作視点のテストを書く'
+    verify: 'npm run lint と npm test が通り、React 警告（key/依存配列）がコンソールに出ない'
+    fb:
+      - 'npm create vite@latest -- --template react-ts で最小再現を作る'
+      - '再レンダー問題は React DevTools Profiler で実測する'
+      - 'ビルド不良は node_modules と lockfile を確認し npm ci'
+    rel: [frontend, html-css, nodejs, testing, debugging]
+    no:
+      - 'state の直接変更や依存配列の lint 警告無視をしない'
+      - '本番公開・npm publish は承認なしで行わない'
+    risk: low
+  - name: nodejs
+    d: Node.js アプリ・スクリプトの開発と実行
+    tr: [Node.js, npm, Express, package.json, TypeScript, node]
+    tools: [terminal, read_file, write_file, patch]
+    opt: [search_files]
+    deps: [node, npm]
+    steps:
+      - 'node -v / npm -v と package.json の engines・type（module/commonjs）を確認する'
+      - 'npm ci（lockfile あり）または npm install で依存を導入する'
+      - 'エントリを実装し node --watch src\index.js で実行、環境変数は .env から dotenv/--env-file で読む'
+      - '非同期はエラー処理（try/catch・unhandledRejection）を付ける'
+      - 'node --test か Vitest/Jest でテストし npm audit を確認する'
+    verify: 'npm test が通り node src\index.js が起動してエラー無く応答する'
+    fb:
+      - 'winget install OpenJS.NodeJS.LTS、バージョン切替は nvm-windows / fnm'
+      - 'パス長/権限問題は短いパスへ移動、または WSL で実行'
+      - 'npm が不調なら pnpm / yarn を使う'
+    rel: [backend-api, react, dependency-management, testing]
+    no:
+      - '.env や認証情報をコミット/ログ出力しない'
+      - 'npm publish・本番サーバーへのデプロイは承認なしで行わない'
+    risk: low
+  - name: backend-api
+    d: REST/HTTP バックエンド API の実装とテスト
+    tr: [API 実装, エンドポイント, FastAPI, Express, ASP.NET, バックエンド]
+    tools: [terminal, read_file, write_file, patch]
+    opt: [search_files]
+    deps: [node, python]
+    steps:
+      - 'api-design で決めた仕様（OpenAPI）とフレームワーク（FastAPI/Express/ASP.NET）を確認する'
+      - 'ルーティング・入力検証（pydantic/zod）・サービス層・永続化層を分離して実装する'
+      - '統一したエラー形式（HTTP ステータス+code）と構造化ログを実装する'
+      - 'Invoke-RestMethod / curl.exe でローカルを叩き正常系・異常系を確認する'
+      - '自動テスト（pytest + httpx / supertest）を追加する'
+    verify: 'テストが通り、Invoke-RestMethod で正常系 2xx・不正入力 4xx が期待通り返る'
+    fb:
+      - 'pip install fastapi uvicorn / npm i express で導入'
+      - 'DB 未構築なら SQLite か Docker Compose で一時 DB を使う'
+      - 'ポート使用中は Get-NetTCPConnection -LocalPort で確認し変更'
+    rel: [api-design, database-design, auth, nodejs, testing]
+    no:
+      - '入力を未検証で SQL/コマンドへ渡さない（インジェクション）'
+      - '本番デプロイ・外部へのメール/通知送信は承認なしで行わない'
+    risk: medium
+  - name: database-design
+    d: スキーマ設計・正規化・インデックス・マイグレーション
+    tr: [DB 設計, スキーマ, ER 図, 正規化, マイグレーション, インデックス]
+    tools: [read_file, write_file, terminal]
+    opt: [search_files]
+    deps: [mysql, psql, sqlite3]
+    steps:
+      - 'エンティティと関係（1:N/N:N）を洗い出し ER 図（Mermaid erDiagram）を書く'
+      - '第3正規形を基準に、性能上必要な箇所のみ意図して非正規化する'
+      - '主キー・外部キー・NOT NULL・UNIQUE・CHECK 制約を DDL で定義する'
+      - '主要クエリに合わせインデックスを設計し EXPLAIN (ANALYZE) で効果を確認する'
+      - 'マイグレーションツール（Alembic/Flyway/EF Migrations）で up/down を管理する'
+    verify: '空 DB へマイグレーションが通り、主要クエリの EXPLAIN がインデックスを使用している'
+    fb:
+      - 'DB 未導入は Docker で postgres/mysql を起動、または SQLite で先行検証'
+      - 'ツール不足は winget install PostgreSQL.PostgreSQL 等で導入'
+      - '設計が割れる場合は ADR に代替案を残す'
+    rel: [mysql, postgresql, sqlite, backend-api, system-design]
+    no:
+      - '本番 DB への DROP/TRUNCATE/大量 UPDATE は承認なしで実行しない'
+      - '個人情報を含むダンプを外部送信しない'
+    risk: medium
+  - name: mysql
+    d: MySQL の接続・クエリ・チューニング・バックアップ
+    tr: [MySQL, MariaDB, mysql.exe, mysqldump, スロークエリ]
+    tools: [terminal, read_file]
+    opt: [write_file]
+    deps: [mysql, mysqldump]
+    steps:
+      - 'mysql --version と Get-Service MySQL* でサービス状態を確認する'
+      - '接続: mysql -h 127.0.0.1 -P 3306 -u <user> -p（パスワードは対話入力）'
+      - 'SHOW DATABASES / SHOW CREATE TABLE / EXPLAIN FORMAT=TREE でスキーマと実行計画を確認する'
+      - 'スロークエリは SET GLOBAL slow_query_log=ON で採取（テスト環境）し索引を見直す'
+      - 'バックアップ: mysqldump --single-transaction -u <user> -p <db> > backup.sql'
+    verify: 'SELECT 1 が成功し、変更後の EXPLAIN で型 ALL のフルスキャンが解消している'
+    fb:
+      - 'winget install Oracle.MySQL で導入、または docker run -p 3306:3306 mysql:8'
+      - '接続不可は Get-NetTCPConnection -LocalPort 3306 と認証プラグインを確認'
+      - 'GUI として MySQL Workbench / DBeaver を使う'
+    rel: [database-design, postgresql, backend-api, sqlite]
+    no:
+      - '本番での DROP/DELETE（WHERE 無し）/ TRUNCATE は承認なしで行わない'
+      - 'パスワードをコマンドライン引数（-p<pass>）・ログ・リポジトリに残さない'
+    risk: high
+  - name: postgresql
+    d: PostgreSQL の接続・クエリ・チューニング・バックアップ
+    tr: [PostgreSQL, Postgres, psql, pg_dump, EXPLAIN ANALYZE]
+    tools: [terminal, read_file]
+    opt: [write_file]
+    deps: [psql, pg_dump]
+    steps:
+      - 'psql --version と Get-Service postgresql* でサービスを確認する'
+      - '接続: psql -h localhost -U <user> -d <db>（パスワードは PGPASSFILE か対話入力）'
+      - '\dt / \d+ <table> / EXPLAIN (ANALYZE, BUFFERS) で構造と実行計画を確認する'
+      - 'pg_stat_statements で重いクエリを特定しインデックス・統計（ANALYZE）を見直す'
+      - 'バックアップ: pg_dump -Fc -U <user> -f db.dump <db>、復元は pg_restore を別 DB に対して行う'
+    verify: 'SELECT 1 が成功し、EXPLAIN ANALYZE の実行時間が改善、pg_restore で別 DB に復元できる'
+    fb:
+      - 'winget install PostgreSQL.PostgreSQL、または docker run -p 5432:5432 postgres:16'
+      - 'pg_hba.conf/ポート 5432 の疎通を Test-NetConnection localhost -Port 5432 で確認'
+      - 'GUI は pgAdmin / DBeaver'
+    rel: [database-design, mysql, backend-api, redis]
+    no:
+      - '本番での DROP/TRUNCATE/WHERE 無し DELETE は承認なしで行わない'
+      - 'PGPASSWORD の平文記録・ダンプの外部送信をしない'
+    risk: high
+  - name: redis
+    d: Redis のキャッシュ・キュー・セッション運用とデバッグ
+    tr: [Redis, キャッシュ, redis-cli, TTL, pub/sub, セッション]
+    tools: [terminal, read_file]
+    opt: [write_file]
+    deps: [redis-cli, redis-server]
+    steps:
+      - 'Windows では WSL/Docker 上の Redis を使う: docker run -d -p 6379:6379 redis:7'
+      - 'redis-cli -h localhost ping で疎通、INFO memory / INFO stats で状態を確認する'
+      - 'キー設計（prefix:entity:id）と TTL（EXPIRE）を決め、SCAN でキーを走査する（KEYS * は使わない）'
+      - 'maxmemory-policy（allkeys-lru 等）と永続化（RDB/AOF）を要件に合わせる'
+      - '遅い処理は SLOWLOG GET と redis-cli --latency で調べる'
+    verify: 'PING が PONG を返し、TTL が設定されキー数/メモリが想定内である'
+    fb:
+      - 'winget install Redis.Redis もしくは Memurai を利用'
+      - '接続不可は Test-NetConnection localhost -Port 6379 を確認'
+      - '小規模なら Python dict/SQLite で代替して設計を検証'
+    rel: [backend-api, postgresql, websocket, nginx]
+    no:
+      - '本番での FLUSHALL/FLUSHDB/KEYS * は承認なしで実行しない'
+      - '認証なしで外部公開（bind 0.0.0.0）しない'
+    risk: medium
+  - name: nginx
+    d: nginx のリバースプロキシ・静的配信・設定検証
+    tr: [nginx, リバースプロキシ, SSL, 設定, upstream, 502]
+    tools: [terminal, read_file, write_file]
+    opt: [patch]
+    deps: [nginx]
+    steps:
+      - '設定ファイル（conf\nginx.conf）を確認し、変更前にコピーでバックアップする'
+      - 'server/location/upstream を設定し proxy_set_header Host / X-Forwarded-* を付ける'
+      - '適用前に nginx -t で構文検証し、nginx -s reload で反映する'
+      - '502/504 は logs\error.log と upstream の疎通（Test-NetConnection）を確認する'
+      - '検証: curl.exe -I http://localhost/ でステータスとヘッダを確認する'
+    verify: 'nginx -t が successful で、curl.exe -I が期待ステータスを返す'
+    fb:
+      - 'winget install nginxinc.nginx もしくは Docker（nginx:stable）で実行'
+      - 'ポート 80 競合は Get-NetTCPConnection -LocalPort 80 で占有プロセスを確認'
+      - 'Caddy / IIS ARR で代替する'
+    rel: [backend-api, websocket, auth, redis]
+    no:
+      - '本番設定の変更・reload・証明書/秘密鍵の外部送信は承認なしで行わない'
+      - 'Windows ファイアウォール等の重要システム設定を承認なしで変更しない'
+    risk: high
+  - name: websocket
+    d: WebSocket 双方向通信の実装・接続デバッグ
+    tr: [WebSocket, ws, socket.io, リアルタイム, 接続切れ, ping]
+    tools: [terminal, read_file, write_file, patch]
+    opt: [browser_navigate]
+    deps: [node, wscat]
+    steps:
+      - 'メッセージ形式（type/payload の JSON）と認証方法（接続時トークン）を決める'
+      - 'サーバー: Node は ws、Python は websockets/FastAPI WebSocket で実装する'
+      - 'ping/pong ハートビートと指数バックオフ再接続をクライアントに実装する'
+      - '検証: npx wscat -c ws://localhost:8080 で送受信を確認する'
+      - 'リバースプロキシ越しは Upgrade/Connection ヘッダと proxy_read_timeout を設定する'
+    verify: 'wscat で送受信でき、切断後に自動再接続して状態が復元される'
+    fb:
+      - 'npm i -g wscat か Postman の WebSocket 機能を使う'
+      - '不可なら SSE や long polling に切替'
+      - '接続失敗はブラウザの Network タブ（101 ステータス）で確認'
+    rel: [backend-api, nginx, nodejs, auth, redis]
+    no:
+      - '認証なしの公開エンドポイントや無制限のメッセージサイズを許可しない'
+      - 'ユーザーへの外部通知送信は承認なしで行わない'
+    risk: medium
+  - name: auth
+    d: 認証・認可（JWT/OAuth2/セッション）の安全な実装
+    tr: [認証, 認可, ログイン, JWT, OAuth, パスワード, セッション]
+    tools: [terminal, read_file, write_file, patch]
+    opt: [search_files]
+    deps: [argon2, jose]
+    steps:
+      - '方式を選ぶ（Cookie セッション/OAuth2 PKCE/JWT）。ブラウザ向けは HttpOnly+Secure+SameSite Cookie を優先'
+      - 'パスワードは argon2id か bcrypt でハッシュ化し平文保存しない'
+      - 'JWT は短寿命 access + refresh ローテーション、alg 固定、署名鍵は環境変数/Secret store から読む'
+      - '認可はサーバー側でリソース毎に検証（ロール/オーナー）し、ログイン試行にレート制限を付ける'
+      - '不正トークン/期限切れ/権限不足のテストを書く'
+    verify: '未認証 401・権限不足 403 が返り、トークン改ざん/期限切れのテストが通る'
+    fb:
+      - 'pip install argon2-cffi / npm i argon2 jose で導入'
+      - '自前実装が困難なら実績ある IdP/ライブラリ（Auth.js, Keycloak）を使う'
+      - 'OAuth 設定不備は redirect URI とスコープを確認'
+    rel: [backend-api, api-design, nginx, websocket]
+    no:
+      - 'Secret・鍵・トークンをコミット/ログ/外部へ送信しない'
+      - '自作暗号・独自ハッシュを使わない。本番 IdP 設定変更は承認が必要'
+    risk: high
+  - name: api-design
+    d: REST/OpenAPI の API 仕様設計とバージョニング
+    tr: [API 設計, OpenAPI, REST, エンドポイント設計, スキーマ, バージョン]
+    tools: [read_file, write_file]
+    opt: [terminal, search_files]
+    deps: [openapi]
+    steps:
+      - 'リソースと操作を名詞ベースで列挙（GET /orders/{id} 等）し HTTP メソッドと冪等性を決める'
+      - 'openapi.yaml にリクエスト/レスポンス/エラー（problem+json）スキーマを定義する'
+      - 'ページネーション（cursor）・フィルタ・ソート・レート制限・認証方式を統一する'
+      - '互換性ポリシー（/v1 か ヘッダ）と廃止手順を決める'
+      - 'npx @redocly/cli lint openapi.yaml で検証し、モック（prism mock）で利用者と確認する'
+    verify: 'redocly lint がエラー 0 で、全エンドポイントに成功/失敗例が定義されている'
+    fb:
+      - 'npm i -g @redocly/cli / @stoplight/prism-cli で導入'
+      - '不可なら Swagger Editor（docker run swaggerapi/swagger-editor）で確認'
+      - '既存実装から FastAPI の /openapi.json を生成して差分比較'
+    rel: [backend-api, auth, database-design, frontend]
+    no:
+      - '既存クライアントを壊す破壊的変更をバージョン無しで入れない'
+      - '仕様の外部公開・ドキュメント公開は承認なしで行わない'
+    risk: low

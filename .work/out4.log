@@ -1,0 +1,12 @@
+3つのカテゴリの YAML を `skills/catalog/` に書き、`yaml.safe_load` でパースできることを確認しました。
+
+- `documents.yaml`: 17 skills
+- `quality.yaml`: 14 skills
+- `automation.yaml`: 17 skills
+
+全 48 エントリで 13 フィールド（name, d, tr, tools, opt, deps, steps, verify, fb, rel, no, risk）が揃っています。`d` はすべて 60 文字以内、steps は 4〜5 件です。
+
+`no:` キーは `"no":` と引用符付きにしました。PyYAML は引用符なしの `no` を boolean `False` として読むため、`scripts/kiridev_skills.py:71` の `g.get("no")` が禁止事項を取れなくなるからです。今後このカテゴリを追加するときも、`no` のキーは引用符付きにしてください。
+
+`kiridev_skills.py build` は実行しておらず、SKILL.md の生成までは確認していません。
+[worker sonnet] turns=9 tokens=200064 cost=$0.4177

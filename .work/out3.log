@@ -1,0 +1,13 @@
+`skills/catalog/` に3ファイルを書きました。3ファイルとも指定の Python で `yaml.safe_load` が通り、スキル数は次のとおりです。
+
+| ファイル | スキル数 |
+|---|---|
+| `research.yaml` | 18 |
+| `ai.yaml` | 22 |
+| `multimodal.yaml` | 14 |
+
+- **研究**: 指定リストを数え直すと17件ではなく18件でした。そのため18件すべてを書いています。
+- **スキーマ**: 全エントリに必須フィールド(`name`, `d`, `tr`, `tools`, `opt`, `deps`, `steps`, `verify`, `fb`, `rel`, `no`, `risk`)を入れています。`d` の60字以内は目視でのみ確認し、機械的にはチェックしていません。
+- **未実施**: `scripts\kiridev_skills.py build` は実行していません。
+- **他のファイル**: 他のファイルは作成も変更もしていません。
+[worker sonnet] turns=6 tokens=80474 cost=$0.3897

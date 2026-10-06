@@ -1,0 +1,131 @@
+category: security
+defaults:
+  tools: [terminal, read_file]
+  fallback: ['tool-missing: winget/pip/npm で導入 → 代替ツール']
+  risk: low
+skills:
+  - name: security-review
+    d: コード・設定の脆弱性レビューと是正案の提示
+    tr: [セキュリティレビュー, 脆弱性, OWASP, 監査]
+    tools: [terminal, read_file, search_files]
+    opt: [web_search, delegate_task]
+    deps: [semgrep, git]
+    steps:
+      - 'git ls-files と構成から攻撃面(入力・認証・ファイル・実行・外部通信)を列挙する'
+      - 'search_files で eval/exec/Invoke-Expression/subprocess shell=True/SQL 文字列連結を検索する'
+      - 'semgrep --config auto <path> で自動検査する'
+      - '認証/認可・入力検証・パス走査・デシリアライズ・ログ内 Secret を手動確認する'
+      - '重大度(高/中/低)・根拠 file:line・修正案の表で報告する'
+    verify: '指摘ごとに file:line と再現条件/根拠があり、未確認項目を明記'
+    fb:
+      - 'semgrep 不在: pip install semgrep / bandit / npm audit 等の言語別ツール'
+      - 'Docker の semgrep/semgrep イメージ'
+      - '手動レビューのチェックリストに切替'
+    rel: [dependency-audit, secret-scan, permission-audit, verification]
+    "no": ['本番システムへ攻撃的テスト(スキャン/エクスプロイト)を承認なしで実施しない', '発見した Secret を出力・外部送信しない', '承認なしで脆弱性を公開しない']
+    risk: low
+  - name: dependency-audit
+    d: 依存パッケージの既知脆弱性・ライセンス監査
+    tr: [依存関係, npm audit, pip-audit, CVE, 脆弱性スキャン]
+    tools: [terminal, read_file]
+    opt: [web_search]
+    deps: [npm, pip-audit, dotnet]
+    steps:
+      - 'ロック/マニフェスト(package-lock.json, requirements.txt, *.csproj, vcpkg.json)を特定する'
+      - 'npm audit --json / pip-audit -r requirements.txt / dotnet list package --vulnerable --include-transitive を実行する'
+      - '重大度・到達可能性・修正版の有無で優先付けする'
+      - '更新は最小バージョンの patch/minor から個別に適用しテストする'
+      - '更新不可は理由と緩和策を記録する'
+    verify: '監査コマンドの再実行で High/Critical が 0、またはリスク受容を明記'
+    fb:
+      - 'pip-audit 不在: pip install pip-audit'
+      - 'osv-scanner (winget install Google.OSVScanner)'
+      - 'GitHub Advisory / osv.dev を web_search で確認'
+      - 'trivy fs . を Docker で実行'
+    rel: [supply-chain-review, security-review, package-management]
+    "no": ['npm audit fix --force を承認なしで実行しない', 'ロックファイルを無断で全再生成しない', 'レジストリへ publish しない']
+    risk: low
+  - name: secret-scan
+    d: リポジトリ内の API キー・認証情報の検出
+    tr: [シークレット, APIキー, 漏洩, gitleaks, トークン]
+    tools: [terminal, search_files]
+    opt: [read_file]
+    deps: [gitleaks, git]
+    steps:
+      - 'gitleaks detect --source . --redact -v で作業ツリーと履歴を検査する'
+      - 'gitleaks 不在時は Select-String で AKIA|ghp_|sk-|BEGIN (RSA|OPENSSH) PRIVATE KEY を検索する'
+      - '.env・*.pem・*.pfx・appsettings*.json・.git 管理対象を git ls-files で確認する'
+      - '検出値は必ずマスクして報告(先頭 4 文字まで)し、場所のみ示す'
+      - '漏洩時は失効→再発行→履歴除去→.gitignore の順を提案する'
+    verify: 'gitleaks 終了コード 0、または全検出に対処方針がある'
+    fb:
+      - '不在: winget install Gitleaks.Gitleaks'
+      - 'trufflehog / detect-secrets (pip install detect-secrets)'
+      - 'git log -p -S<pattern> で履歴検索'
+      - 'Docker の zricethezav/gitleaks'
+    rel: [security-review, git, permission-audit]
+    "no": ['Secret の実値を出力・ログ・外部へ送らない', '失効/ローテーションを承認なしで実行しない', 'git filter-repo / force push を承認なしで行わない']
+    risk: medium
+  - name: permission-audit
+    d: ファイル・サービス・ユーザー権限の過剰付与の監査
+    tr: [権限監査, 過剰権限, ACL 監査, 管理者, 最小権限]
+    tools: [terminal]
+    opt: [read_file]
+    deps: [icacls, powershell]
+    steps:
+      - 'whoami /all で現在のトークン・グループ・特権を確認する'
+      - 'Get-LocalGroupMember Administrators で管理者メンバーを列挙する'
+      - '(Get-Acl <path>).Access | Where IdentityReference -match "Everyone|Users" で広い許可を探す'
+      - 'Get-CimInstance Win32_Service | Where StartName -match "LocalSystem" で高権限サービスを確認する'
+      - '結果を読取専用で報告し、是正は permissions-acl の手順で承認後に行う'
+    verify: '過剰権限の一覧(対象・主体・権限)と是正案を提示'
+    fb:
+      - 'Get-Acl 不可: icacls <path>'
+      - 'accesschk (Sysinternals) を導入'
+      - 'net localgroup administrators'
+      - 'Docker/WSL の getfacl/find -perm'
+    rel: [permissions-acl, security-review, service-management]
+    "no": ['監査中に権限・ACL を変更しない', '資格情報ダンプ(mimikatz 等)を行わない', '他ユーザーのデータを閲覧/送信しない']
+    risk: low
+  - name: network-security-review
+    d: 公開ポート・FW・TLS 設定のセキュリティ確認
+    tr: [ポート開放, ファイアウォール, TLS, 待受, 外部公開]
+    tools: [terminal]
+    opt: [web_search]
+    deps: [powershell, netstat]
+    steps:
+      - 'Get-NetTCPConnection -State Listen | Select LocalAddress,LocalPort,OwningProcess でリッスンを列挙する'
+      - '0.0.0.0/:: 待受をプロセス名と突合し不要なものを抽出する'
+      - 'Get-NetFirewallRule -Enabled True -Direction Inbound -Action Allow で許可規則を確認する'
+      - '自ホスト/許可済み対象に限り Test-NetConnection と curl.exe -vI https://<host> で TLS 版・証明書期限を確認する'
+      - '所見と是正案(バインドを 127.0.0.1 に限定等)を報告する'
+    verify: '待受/規則/TLS の一覧と各リスク評価を提示'
+    fb:
+      - 'netstat -ano | findstr LISTENING'
+      - 'nmap (winget install Insecure.Nmap) を自ホストのみに使用'
+      - 'openssl s_client -connect <host>:443'
+      - 'WSL の ss -tlnp'
+    rel: [network-diagnostics, security-review, permission-audit]
+    "no": ['承認なしで第三者/外部ホストをスキャンしない', 'FW 規則・ポート設定を承認なしで変更しない', 'Defender/FW の無効化をしない']
+    risk: medium
+  - name: supply-chain-review
+    d: 依存・ビルド・配布物のサプライチェーンリスク確認
+    tr: [サプライチェーン, typosquatting, 署名, postinstall, 配布物]
+    tools: [terminal, read_file]
+    opt: [web_search, web_extract]
+    deps: [npm, pip, git]
+    steps:
+      - '新規/更新依存の名称類似(typosquat)・メンテナ・公開日・DL 数を npm view / pip index versions で確認する'
+      - 'package.json の scripts(preinstall/postinstall) と setup.py/pyproject のビルドフックを読む'
+      - 'npm install --ignore-scripts や pip download --no-deps で取得だけ行い内容を検査する'
+      - 'Get-FileHash と Get-AuthenticodeSignature、公式の checksum/署名と照合する'
+      - 'CI の uses: アクションをコミット SHA に固定されているか確認する'
+    verify: '各依存に出所・署名/ハッシュ確認結果とリスク判定がある'
+    fb:
+      - 'osv-scanner / socket.dev / npm audit signatures'
+      - 'Docker/Windows Sandbox で隔離して検査'
+      - '代替の信頼できるライブラリを提案'
+      - '不明なら導入を保留しユーザーに確認'
+    rel: [dependency-audit, package-management, software-installation]
+    "no": ['未検証パッケージを本環境へ導入・実行しない', '承認なしで publish/リリースしない', '検査対象のスクリプトを隔離なしで実行しない']
+    risk: medium

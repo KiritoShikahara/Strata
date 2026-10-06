@@ -1,0 +1,194 @@
+category: languages
+defaults:
+  tools: [terminal, read_file]
+  fallback: ['tool-missing: winget/pip/npm で導入 → 代替ツール']
+  risk: low
+skills:
+  - name: cpp
+    d: C++ (C++17/20) のコード作成・ビルド・デバッグ
+    tr: [C++, cpp, .cpp, std::, テンプレート]
+    tools: [terminal, read_file, patch]
+    opt: [search_files]
+    deps: [cl, clang++, cmake]
+    steps:
+      - 'Get-Command cl, clang++, g++ で利用可能なコンパイラを確認する'
+      - 'CMakeLists.txt の CMAKE_CXX_STANDARD と警告設定(/W4 /permissive- または -Wall -Wextra)を確認する'
+      - 'cmake -S . -B build -G Ninja && cmake --build build で構築する'
+      - 'RAII/スマートポインタ/constexpr を優先し、生 new/delete を避けて修正する'
+      - 'AddressSanitizer (/fsanitize=address) や clang-tidy で検証する'
+    verify: 'cmake --build が警告 0 で成功し ctest が全件 pass'
+    fb:
+      - 'cl 不在: VS Build Tools を winget install Microsoft.VisualStudio.2022.BuildTools で導入し Developer PowerShell を使う'
+      - 'clang++ / MinGW (winget install LLVM.LLVM)'
+      - 'WSL の g++ でビルド'
+      - 'Docker の gcc イメージ'
+    rel: [cmake, msvc, c, memory-performance, debugging]
+    "no": ['未検証のサードパーティバイナリをリンクしない', 'UB を警告抑制だけで隠さない']
+    risk: low
+  - name: c
+    d: C 言語のコード作成・ビルド・デバッグ
+    tr: [C言語, .c, gcc, ポインタ, malloc]
+    tools: [terminal, read_file, patch]
+    opt: [search_files]
+    deps: [cl, gcc, clang]
+    steps:
+      - 'cl /TC /W4 /std:c17 file.c または clang -std=c17 -Wall -Wextra file.c でビルドする'
+      - '境界チェック・NULL チェック・戻り値確認を点検する'
+      - 'malloc/free の対応を確認し /fsanitize=address で検証する'
+      - 'strcpy 等は strncpy_s / snprintf に置換する'
+      - 'Makefile/CMake で再現可能なビルドにする'
+    verify: '警告 0 でビルドし ASan 下の実行でエラーなし'
+    fb:
+      - 'cl 不在: clang (winget install LLVM.LLVM)'
+      - 'MSYS2 gcc (winget install MSYS2.MSYS2)'
+      - 'WSL gcc / Docker gcc'
+    rel: [cpp, cmake, debugging, memory-performance]
+    "no": ['gets/strcpy 等の危険関数を新規で使わない', 'ASan 警告を無視しない']
+    risk: low
+  - name: csharp
+    d: C# / .NET のコード作成・ビルド・テスト
+    tr: [C#, csharp, .NET, dotnet, csproj]
+    tools: [terminal, read_file, patch]
+    opt: [search_files]
+    deps: [dotnet]
+    steps:
+      - 'dotnet --info で SDK 版を確認し global.json/TargetFramework を確認する'
+      - 'dotnet restore && dotnet build -warnaserror で構築する'
+      - '#nullable enable、async/await、using/IDisposable を適切に使い修正する'
+      - 'dotnet test --no-build で xUnit/NUnit を実行する'
+      - 'dotnet format --verify-no-changes でスタイルを確認する'
+    verify: 'dotnet build と dotnet test が成功'
+    fb:
+      - 'SDK 不在: winget install Microsoft.DotNet.SDK.8'
+      - 'NuGet 失敗: dotnet nuget locals all --list と source 確認'
+      - 'Docker mcr.microsoft.com/dotnet/sdk'
+      - 'csi / dotnet-script で簡易検証'
+    rel: [testing, debugging, package-management]
+    "no": ['未検証 NuGet パッケージを追加しない', 'nuget への publish を承認なしで行わない']
+    risk: low
+  - name: python
+    d: Python スクリプト作成・venv・pytest 実行
+    tr: [Python, py, pip, venv, pytest]
+    tools: [terminal, read_file, patch]
+    opt: [execute_code]
+    deps: [python, pip]
+    steps:
+      - 'py -0p / python --version でインタプリタを確認する'
+      - 'python -m venv .venv; .\.venv\Scripts\Activate.ps1 で仮想環境を作る'
+      - 'python -m pip install -r requirements.txt で依存を導入する'
+      - '型ヒントと pathlib を使い、ruff check / ruff format で整形する'
+      - 'python -m pytest -q で検証する'
+    verify: 'python -m pytest -q が成功し ruff check が 0 件'
+    fb:
+      - 'python 不在: winget install Python.Python.3.12'
+      - 'Microsoft Store スタブ回避: py ランチャーを使う'
+      - 'uv (pip install uv) で環境構築'
+      - 'WSL / Docker の python イメージ'
+    rel: [testing, debugging, package-management, powershell]
+    "no": ['グローバル環境に承認なく pip install しない', 'PyPI への publish を承認なしで行わない', 'eval/exec で外部入力を実行しない']
+    risk: low
+  - name: javascript
+    d: JavaScript / Node.js のコード作成・実行・テスト
+    tr: [JavaScript, JS, Node, npm, .js]
+    tools: [terminal, read_file, patch]
+    opt: [execute_code]
+    deps: [node, npm]
+    steps:
+      - 'node -v; npm -v と package.json の engines を確認する'
+      - 'npm ci(lock あり) または npm install で依存を導入する'
+      - 'ESM/CJS("type" フィールド)を確認し npx eslint . で静的検査する'
+      - 'npm test / node --test で検証する'
+      - '非同期処理は async/await と明示的な例外処理で書く'
+    verify: 'npm test と eslint が成功'
+    fb:
+      - 'node 不在: winget install OpenJS.NodeJS.LTS'
+      - 'pnpm/yarn/bun に切替'
+      - 'npm 失敗: npm cache verify と registry 確認'
+      - 'Docker node イメージ'
+    rel: [typescript, testing, debugging, supply-chain-review]
+    "no": ['npm publish を承認なしで行わない', 'postinstall を未確認の依存を導入しない', 'eval で外部入力を実行しない']
+    risk: low
+  - name: typescript
+    d: TypeScript の型設計・ビルド・型チェック
+    tr: [TypeScript, TS, tsc, tsconfig, .ts]
+    tools: [terminal, read_file, patch]
+    opt: [search_files]
+    deps: [node, typescript]
+    steps:
+      - 'npx tsc -v と tsconfig.json の strict/target/module を確認する'
+      - 'npx tsc --noEmit で型エラーを一覧する'
+      - 'any を避け unknown と型ガード、判別共用体で修正する'
+      - 'ビルドは tsc -p . または tsx/esbuild/vite を既存設定に合わせる'
+      - 'vitest/jest でテストを実行する'
+    verify: 'npx tsc --noEmit がエラー 0、テスト成功'
+    fb:
+      - 'tsc 不在: npm i -D typescript'
+      - 'ts-node/tsx で直接実行'
+      - '@ts-expect-error は理由コメント付きの最終手段'
+      - 'Deno/Bun の組込み TS を使う'
+    rel: [javascript, testing, debugging]
+    "no": ['strict を緩めて型エラーを隠さない', 'as any の乱用をしない', 'npm publish を承認なしで行わない']
+    risk: low
+  - name: sql
+    d: SQL の作成・最適化・安全な実行
+    tr: [SQL, クエリ, SELECT, SQLite, PostgreSQL]
+    tools: [terminal, read_file]
+    opt: [execute_code]
+    deps: [sqlite3, psql, sqlcmd]
+    steps:
+      - '対象 DB 種別(SQLite/PostgreSQL/SQL Server)と接続先を確認する'
+      - 'スキーマは .schema (sqlite3) / \d (psql) / sp_help (sqlcmd) で把握する'
+      - 'SELECT から始め EXPLAIN (QUERY PLAN / ANALYZE) で索引使用を確認する'
+      - '更新系は BEGIN; ... で実行前に SELECT で対象件数を確認し、確認後 COMMIT する'
+      - '値はパラメータ化し文字列連結しない'
+    verify: '対象件数が想定どおりで EXPLAIN に全表走査がない'
+    fb:
+      - 'sqlite3 不在: winget install SQLite.SQLite または Python sqlite3 モジュール'
+      - 'psql 不在: winget install PostgreSQL.PostgreSQL'
+      - 'Docker の DB イメージで検証用 DB を立てる'
+      - 'Python (sqlalchemy/pyodbc) で実行'
+    rel: [python, backup-restore, security-review]
+    "no": ['本番 DB に承認なしで UPDATE/DELETE/DDL を実行しない', 'WHERE なしの更新/削除をしない', '接続文字列・パスワードを出力しない', 'DROP/TRUNCATE を承認なしで実行しない']
+    risk: high
+  - name: powershell-scripting
+    d: 再利用可能な PowerShell スクリプト/モジュールの作成
+    tr: [ps1, PowerShell スクリプト, 関数, モジュール, Pester]
+    tools: [terminal, read_file, write_file]
+    opt: [patch]
+    deps: [pwsh, Pester, PSScriptAnalyzer]
+    steps:
+      - 'Set-StrictMode -Version Latest と $ErrorActionPreference = "Stop" を先頭に置く'
+      - '[CmdletBinding(SupportsShouldProcess)] と param() で型付き引数、-WhatIf/-Confirm 対応にする'
+      - '外部コマンド後は $LASTEXITCODE を確認する'
+      - 'Invoke-ScriptAnalyzer -Path . で静的検査する'
+      - 'Invoke-Pester で単体テストを実行する'
+    verify: 'Invoke-ScriptAnalyzer 指摘 0、Invoke-Pester 成功'
+    fb:
+      - 'Pester 不在: Install-Module Pester -Scope CurrentUser'
+      - 'PSScriptAnalyzer 不在: Install-Module PSScriptAnalyzer -Scope CurrentUser'
+      - '5.1 互換でない構文は pwsh 7 を使う'
+      - 'Python スクリプトで代替'
+    rel: [powershell, testing, filesystem]
+    "no": ['Invoke-Expression で外部入力を実行しない', '資格情報を平文で埋め込まない', '破壊的処理を -WhatIf 対応なしで書かない']
+    risk: low
+  - name: bash
+    d: Bash スクリプト作成(Git Bash / WSL)と実行
+    tr: [bash, シェルスクリプト, .sh, WSL, Git Bash]
+    tools: [terminal, read_file, write_file]
+    opt: [patch]
+    deps: [bash, shellcheck]
+    steps:
+      - 'bash --version と実行場所(Git Bash か wsl)を確認する'
+      - '先頭に #!/usr/bin/env bash と set -euo pipefail を置く'
+      - '変数は "$var" で必ずクォートし [[ ]] を使う'
+      - 'shellcheck script.sh で検査する(winget install koalaman.shellcheck)'
+      - 'Windows パスは cygpath -u / wslpath で変換し CRLF は dos2unix または sed で LF にする'
+    verify: 'shellcheck 指摘 0 で bash -n と実行が成功'
+    fb:
+      - 'bash 不在: winget install Git.Git (Git Bash)'
+      - 'WSL: wsl --install'
+      - 'PowerShell で等価処理を書く'
+      - 'Docker の bash/alpine イメージ'
+    rel: [wsl-linux, powershell, filesystem]
+    "no": ['rm -rf を変数展開(未検証)で実行しない', 'curl | bash を実行しない', 'eval で外部入力を実行しない']
+    risk: low

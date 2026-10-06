@@ -1,0 +1,349 @@
+category: research
+defaults:
+  tools: [web_search, web_extract]
+  risk: low
+skills:
+  - name: web-research
+    d: Web 検索で一次情報を集め要点を整理する
+    tr: [調べて, 検索, web search, 最新情報]
+    tools: [web_search, web_extract]
+    opt: [browser_navigate, terminal]
+    deps: []
+    steps:
+      - '調査課題を 1〜3 個の検索クエリに分解し web_search を実行する'
+      - '公式ドキュメント・仕様・リポジトリなど一次情報の URL を優先して選ぶ'
+      - 'web_extract で本文を取得し、日付・バージョン・著者を記録する'
+      - '結論と根拠 URL を対応づけて箇条書きにまとめる'
+    verify: '各結論に URL と取得日が付いており、少なくとも 1 件は一次情報であること'
+    fb:
+      - 'web_search 失敗時はクエリを言い換え、別検索エンジンの URL を browser_navigate で開く'
+      - 'web_extract 失敗時は browser_navigate + browser_snapshot、または Invoke-WebRequest -Uri <url> で取得'
+      - 'curl 不在は Get-Command curl -> winget install cURL.cURL'
+    rel: [deep-research, source-verification, primary-source-first]
+    no: ['ログイン必須ページの認証情報を入力しない', 'Secret を検索クエリに含めない']
+    risk: low
+  - name: deep-research
+    d: 多段階の調査で網羅的なレポートを作る
+    tr: [徹底調査, deep research, 詳細レポート, 比較調査]
+    tools: [web_search, web_extract, delegate_task]
+    opt: [todo, write_file]
+    deps: []
+    steps:
+      - 'todo に調査論点を列挙し、論点ごとに検索クエリを 2 個以上用意する'
+      - '論点ごとに web_search -> web_extract で一次情報を収集し、メモを research\notes.md に追記'
+      - '論点間で矛盾する情報を洗い出し source-verification で再確認する'
+      - '結論・根拠・未解決点・信頼度を分けた Markdown レポートを write_file で保存'
+    verify: 'レポートの全論点に出典 URL があり、未解決点が明示されている'
+    fb:
+      - '情報不足の論点は別言語・別キーワードで再検索'
+      - 'コンテキスト溢れ時は delegate_task で論点単位に分割'
+      - 'web ツール不通は browser_* 経由、さらにダメなら既知情報と明記して暫定回答'
+    rel: [web-research, source-verification, citation-management, context-builder]
+    no: ['出典不明の情報を事実として断定しない', '調査結果の外部送信・公開を承認なしで行わない']
+    risk: low
+  - name: source-verification
+    d: 情報源の信頼性と日付・一次性を検証する
+    tr: [出典確認, 信頼性, ソース検証, 本当か]
+    tools: [web_search, web_extract]
+    opt: [browser_navigate]
+    deps: []
+    steps:
+      - '情報の元発信者を辿り、一次情報(公式サイト・論文・リリースノート)に到達する'
+      - '公開日・更新日・対象バージョンを確認し古い情報を除外する'
+      - '独立した 2 つ以上の情報源で主張を照合する'
+      - '信頼度(高/中/低)と理由を付けて報告する'
+    verify: '各主張に 一次情報URL・日付・信頼度 が付与されている'
+    fb:
+      - '一次情報が見つからなければ web-archiving で過去版を確認'
+      - '照合先が 1 つしか無い場合は「単一ソース」と明記'
+      - 'web ツール不通は browser_navigate で直接公式サイトを開く'
+    rel: [fact-checking, primary-source-first, web-archiving]
+    no: ['SNS の伝聞だけで確定扱いにしない', '検証できない主張を補完して書かない']
+    risk: low
+  - name: primary-source-first
+    d: 一次情報(公式・原典)を最優先で参照する
+    tr: [公式, 一次情報, 原典, official docs]
+    tools: [web_search, web_extract]
+    opt: [terminal]
+    deps: [gh]
+    steps:
+      - '対象の公式ドメイン・公式リポジトリ・仕様書(RFC/標準)を特定する'
+      - '検索クエリに site:<公式ドメイン> を付けて web_search する'
+      - 'OSS は gh repo view <owner>/<repo> や CHANGELOG・Releases を直接読む'
+      - '二次情報(ブログ・まとめ)は一次情報で裏取りできたものだけ採用する'
+    verify: '回答の根拠の過半が公式ドメインまたは公式リポジトリの URL である'
+    fb:
+      - 'gh 不在は Get-Command gh -> winget install GitHub.cli'
+      - '公式が無い場合は著者本人の発表・論文・ソースコードを一次とみなす'
+      - '公式ページ取得不可は web-archiving の Wayback で代替'
+    rel: [source-verification, technical-docs-research, github-research]
+    no: ['非公式ミラーのバイナリ/スクリプトを実行しない']
+    risk: low
+  - name: browser-automation
+    d: ブラウザ操作で Web ページを閲覧・操作する
+    tr: [ブラウザ操作, クリック, スクレイピング, ログイン後]
+    tools: [browser_navigate, browser_snapshot, browser_click, browser_type]
+    opt: [browser_vision, terminal]
+    deps: [playwright]
+    steps:
+      - 'browser_navigate で URL を開き browser_snapshot で要素 ref を取得する'
+      - 'browser_click / browser_type を ref 指定で実行し、都度 snapshot で状態確認'
+      - '動的描画や画像要素は browser_vision で視覚確認する'
+      - '必要データを抽出し、取得元 URL と共に保存する'
+    verify: '最終 snapshot に目的の要素・テキストが存在する'
+    fb:
+      - 'ref が古い場合は snapshot を取り直す'
+      - 'ブラウザ未導入は npx playwright install chromium'
+      - 'CAPTCHA・2FA は止めてユーザーに引き渡す'
+      - 'Playwright 不可は web_extract か Invoke-WebRequest で静的取得'
+    rel: [form-interaction, site-navigation, download-management]
+    no: ['パスワード・トークンを推測入力しない', '購入・送信・投稿ボタンを承認なしで押さない', 'CAPTCHA 回避をしない']
+    risk: medium
+  - name: technical-docs-research
+    d: 技術ドキュメント・API 仕様を調べて使い方を確定する
+    tr: [ドキュメント, API 仕様, リファレンス, docs]
+    tools: [web_search, web_extract]
+    opt: [terminal]
+    deps: []
+    steps:
+      - '対象ライブラリのバージョンを確認する(例: pip show <pkg> / npm ls <pkg>)'
+      - '公式ドキュメントの該当バージョンのページを検索し web_extract で取得'
+      - 'シグネチャ・引数・戻り値・非推奨事項を抜き出す'
+      - '最小の動作例を作り terminal で実行して仕様を確認する'
+    verify: '示したコード例が対象バージョンで実行成功する'
+    fb:
+      - '公式 docs が薄い場合はリポジトリの tests/examples を gh search code で探す'
+      - '<cmd> --help / Get-Help <cmdlet> -Full でローカル確認'
+      - 'docs サイト不通は web-archiving か GitHub の docs/ を直接読む'
+    rel: [primary-source-first, github-research, web-research]
+    no: ['バージョン不明のまま古い API を断定しない']
+    risk: low
+  - name: github-research
+    d: gh CLI で GitHub のリポジトリ・Issue・PR を調査する
+    tr: [GitHub, issue, リポジトリ調査, gh]
+    tools: [terminal, web_extract]
+    opt: [web_search]
+    deps: [gh]
+    steps:
+      - 'gh auth status で認証状態を確認する'
+      - 'gh search repos "<query>" --sort stars --limit 10 で候補を探す'
+      - 'gh repo view <o>/<r> と gh release list -R <o>/<r> で活動状況・最新版を確認'
+      - 'gh issue list -R <o>/<r> --search "<kw>" / gh pr view <n> で議論を読む'
+      - 'gh api repos/<o>/<r>/contents/<path> でファイルを取得する'
+    verify: '回答に repo URL・最終更新日・ライセンス・最新リリースが含まれる'
+    fb:
+      - 'gh 不在は Get-Command gh -> winget install GitHub.cli'
+      - '未認証・レート制限時は web_extract で github.com ページを直接取得'
+      - 'git clone --depth 1 を別の空ディレクトリに行いローカル検索'
+    rel: [git, primary-source-first, technical-docs-research]
+    no: ['Issue/PR へのコメント・作成・star を承認なしで行わない', 'トークンを出力・送信しない', '取得したスクリプトを未確認で実行しない']
+    risk: low
+  - name: x-search
+    d: X(Twitter) 上の言及・反応を検索して要約する
+    tr: [X 検索, Twitter, ツイート, 反応]
+    tools: [web_search, browser_navigate]
+    opt: [browser_snapshot, web_extract]
+    deps: []
+    steps:
+      - 'web_search で site:x.com <キーワード> を検索する'
+      - '公開ポストを browser_navigate + browser_snapshot で確認し投稿者・日時を記録'
+      - '公式アカウント・本人発言と第三者の意見を区別して整理する'
+      - '重要な主張は source-verification で一次情報と照合する'
+    verify: '引用ごとに投稿 URL・投稿者・日時が記載されている'
+    fb:
+      - 'ログイン壁は Nitter 系ではなく web_search のスニペットと公式ブログで代替'
+      - 'ブラウザ不可は web_extract でポスト URL を直接取得'
+      - '取得不能なら取得不能と明記し他コミュニティ(community-research)へ'
+    rel: [community-research, source-verification]
+    no: ['ログイン・投稿・いいね・DM を承認なしで行わない', '個人情報を収集・集約しない']
+    risk: low
+  - name: community-research
+    d: Reddit・HN・フォーラムの評判と実体験を調べる
+    tr: [評判, Reddit, Hacker News, フォーラム, 口コミ]
+    tools: [web_search, web_extract]
+    opt: [browser_navigate]
+    deps: []
+    steps:
+      - 'site:reddit.com / site:news.ycombinator.com / site:stackoverflow.com 付きで検索'
+      - '上位スレッドを web_extract で取得し、投稿日・票数・返信を確認する'
+      - '賛否・再現報告・回避策を分類して頻出意見を抽出する'
+      - '体験談は一次情報ではない旨を明記して要約する'
+    verify: '意見ごとにスレッド URL と日付があり、賛否が両方示されている'
+    fb:
+      - 'Reddit 取得不可は URL 末尾に .json を付けて Invoke-RestMethod'
+      - 'HN は https://hn.algolia.com/api/v1/search?query=<kw> を利用'
+      - 'ブラウザ操作は browser-automation に切替'
+    rel: [x-search, fact-checking, product-research]
+    no: ['投稿・返信・投票をしない', 'ユーザー個人を特定する情報をまとめない']
+    risk: low
+  - name: competitive-research
+    d: 競合製品・サービスの機能と価格を比較調査する
+    tr: [競合調査, 比較, 競合分析, alternatives]
+    tools: [web_search, web_extract]
+    opt: [write_file, browser_navigate]
+    deps: []
+    steps:
+      - '対象領域の主要競合を 3〜8 件リストアップ(公式サイト・GitHub・比較記事)'
+      - '各社の公式 Pricing・Features・Docs ページを web_extract で取得'
+      - '比較軸(機能・価格・ライセンス・対応 OS・更新頻度)の表を Markdown で作成'
+      - '強み・弱み・差別化ポイントを根拠 URL 付きで記述する'
+    verify: '表の全セルに出典があり、取得日が明記されている'
+    fb:
+      - '価格非公開は「要問い合わせ」と記載し推測しない'
+      - 'ページ取得不可は browser_navigate か web-archiving'
+      - 'OSS は gh repo view で star・更新日を補完'
+    rel: [product-research, market-research, web-research]
+    no: ['競合サービスへ問い合わせ・登録・購入をしない', '非公開情報の入手を試みない']
+    risk: low
+  - name: product-research
+    d: 製品・ツールの仕様・評価・導入可否を調べる
+    tr: [製品調査, ツール選定, おすすめ, 導入検討]
+    tools: [web_search, web_extract]
+    opt: [terminal, browser_navigate]
+    deps: [winget]
+    steps:
+      - '公式サイトで機能・対応 OS・ライセンス・価格を確認する'
+      - 'winget search <name> / winget show <id> で Windows 提供状況を確認'
+      - 'GitHub の Issues・更新日とコミュニティ評判を調べる'
+      - '要件との適合表と推奨・非推奨理由をまとめる'
+    verify: '要件ごとに適合/不適合と根拠 URL が記載されている'
+    fb:
+      - 'winget 不在は Get-Command winget -> Microsoft Store の App Installer'
+      - 'winget 未掲載は choco search / scoop search を試す'
+      - '公式不明の場合は GitHub Releases を一次情報とする'
+    rel: [competitive-research, community-research, github-research]
+    no: ['調査目的でインストール・購入・サインアップをしない', '広告記事を一次情報扱いしない']
+    risk: low
+  - name: market-research
+    d: 市場規模・動向・統計を出典付きで調査する
+    tr: [市場調査, 市場規模, 動向, 統計]
+    tools: [web_search, web_extract]
+    opt: [execute_code, write_file]
+    deps: []
+    steps:
+      - '政府統計(e-Stat)・業界団体・上場企業 IR・調査会社の公開資料を検索する'
+      - '数値は定義・対象年・通貨・単位とともに web_extract で転記する'
+      - '複数ソースの数値差を比較し、差の理由(定義・年)を注記する'
+      - '必要なら execute_code(pandas)で集計・表にし結論を整理'
+    verify: '全数値に出典・年・単位があり、ソース間の差異が説明されている'
+    fb:
+      - '有料レポートは公開要約・プレスリリースのみ使い、全文は取得しない'
+      - 'PDF は universal-document-ingestion で抽出'
+      - '数値が見つからなければ推計と明記し計算根拠を示す'
+    rel: [competitive-research, fact-checking, source-verification]
+    no: ['有料レポートの不正入手をしない', '推計値を公表値として書かない', '購入を承認なしで行わない']
+    risk: low
+  - name: fact-checking
+    d: 主張の真偽を証拠に基づき判定する
+    tr: [ファクトチェック, 真偽, 本当に, 裏取り]
+    tools: [web_search, web_extract]
+    opt: [browser_navigate]
+    deps: []
+    steps:
+      - '検証対象の主張を 1 文ずつ分解し、数値・固有名詞・日付を抽出する'
+      - '一次情報・公的統計・原論文を検索し、主張と直接照合する'
+      - '反証になる情報も意図的に検索する(<主張> 誤り / debunk)'
+      - '判定(正しい/部分的/誤り/検証不能)と根拠 URL を表で示す'
+    verify: '全主張に判定・根拠 URL・確認日が付いている'
+    fb:
+      - '一次情報不在は「検証不能」と判定し推測で埋めない'
+      - 'FactCheck 系サイトは補助とし元ソースへ遡る'
+      - '削除済み情報は web-archiving で確認'
+    rel: [source-verification, primary-source-first, web-archiving]
+    no: ['検証前に結論を決めない', '個人・団体への断定的中傷表現を使わない']
+    risk: low
+  - name: citation-management
+    d: 出典を一貫した形式で記録・管理する
+    tr: [引用, 出典管理, 参考文献, citation, bibtex]
+    tools: [write_file, read_file]
+    opt: [web_extract, execute_code]
+    deps: []
+    steps:
+      - 'research\sources.md に 1 出典 1 エントリ(タイトル・著者・URL・公開日・取得日)で記録'
+      - 'DOI があれば https://doi.org/<doi> に Accept: application/x-bibtex を付け BibTeX 取得'
+      - '本文中の主張に [n] 番号を振り、出典リストと対応させる'
+      - '重複 URL と切れたリンクを Invoke-WebRequest -Method Head で点検する'
+    verify: '本文の全 [n] が出典リストに存在し、リンクが 200 を返す'
+    fb:
+      - 'メタ情報不明は web_extract で title/meta を取得'
+      - 'DOI 取得不可は Crossref API(api.crossref.org/works/<doi>)を利用'
+      - 'リンク切れは web-archiving の保存 URL に差し替え'
+    rel: [deep-research, web-archiving, source-verification]
+    no: ['存在しない文献・URL を作らない', '引用元を明記せず転載しない']
+    risk: low
+  - name: web-archiving
+    d: Wayback 等で Web ページを保存・過去版を参照する
+    tr: [アーカイブ, Wayback, 過去版, 保存, リンク切れ]
+    tools: [web_extract, terminal]
+    opt: [browser_navigate]
+    deps: []
+    steps:
+      - '過去版確認: Invoke-RestMethod "https://archive.org/wayback/available?url=<url>"'
+      - '見つかった archive_url を web_extract で取得する'
+      - '手元保存は Invoke-WebRequest -Uri <url> -OutFile archive\page.html を空ディレクトリで実行'
+      - '保存時は URL・取得日時・SHA256(Get-FileHash)を archive\manifest.md に記録'
+    verify: 'Get-FileHash で保存物のハッシュが記録され、archive_url が開ける'
+    fb:
+      - 'Wayback 未収録は archive.ph の既存スナップショットを検索'
+      - 'wget 不在は winget install JernejSimoncic.Wget、または Invoke-WebRequest'
+      - 'ブラウザ印刷 PDF(browser_navigate 後に保存)で代替'
+    rel: [citation-management, fact-checking, download-management]
+    no: ['Wayback へ非公開・認証付きページを送信しない', '著作権物を再配布しない']
+    risk: low
+  - name: site-navigation
+    d: サイト構造を辿り目的のページ・情報へ到達する
+    tr: [サイト内検索, 目的のページ, ナビゲーション, sitemap]
+    tools: [browser_navigate, browser_snapshot]
+    opt: [browser_click, web_extract, terminal]
+    deps: []
+    steps:
+      - 'https://<host>/sitemap.xml と robots.txt を web_extract で確認する'
+      - '検索クエリ site:<host> <kw> で候補 URL を絞る'
+      - 'browser_navigate -> browser_snapshot でメニュー・リンク ref を確認し browser_click で遷移'
+      - '到達 URL と経路をメモし、目的情報を抽出する'
+    verify: '目的ページの URL を示し、snapshot に該当記述が存在する'
+    fb:
+      - 'JS 描画で空なら browser_snapshot を待機後に取り直す'
+      - 'sitemap 無しは検索ボックスを browser_type で利用'
+      - 'アクセス拒否は web-archiving のキャッシュで代替'
+    rel: [browser-automation, form-interaction, web-research]
+    no: ['robots.txt/利用規約に反する大量クロールをしない', '認証回避をしない']
+    risk: low
+  - name: form-interaction
+    d: Web フォームを入力し検索・申請操作を行う
+    tr: [フォーム入力, 申込, 入力して, submit]
+    tools: [browser_navigate, browser_snapshot, browser_type, browser_click]
+    opt: [browser_vision, clarify]
+    deps: []
+    steps:
+      - 'browser_snapshot でフォーム項目の ref・必須項目・選択肢を把握する'
+      - '入力値をユーザー指定内容と照合し、不足は clarify で確認する'
+      - 'browser_type / browser_click で入力し、送信前に snapshot で入力内容を再確認'
+      - '送信が不可逆なものはユーザー承認後にのみ実行し、結果画面を確認'
+    verify: '送信後の確認画面/メッセージが snapshot に表示されている'
+    fb:
+      - 'ref 不一致は snapshot を取り直す'
+      - 'カスタム UI で入力不可は browser_vision で座標確認'
+      - 'CAPTCHA・本人認証は停止してユーザーへ引き渡す'
+    rel: [browser-automation, site-navigation, permission-policy]
+    no: ['承認なしの送信・問い合わせ・購入・予約・投稿', 'パスワード/カード情報の入力', 'CAPTCHA 回避']
+    risk: high
+  - name: download-management
+    d: ファイルを安全にダウンロードし検証・整理する
+    tr: [ダウンロード, 取得, download, ファイル保存]
+    tools: [terminal]
+    opt: [browser_navigate, read_file]
+    deps: []
+    steps:
+      - '専用の空ディレクトリを作る: New-Item -ItemType Directory downloads\<name>'
+      - 'Invoke-WebRequest -Uri <url> -OutFile downloads\<name>\<file>(大容量は curl.exe -L -C - -O)'
+      - '公式のハッシュと照合: Get-FileHash -Algorithm SHA256 <file>'
+      - '圧縮物は別の新規ディレクトリへ展開(Expand-Archive -DestinationPath)し、中身を確認'
+    verify: 'Get-FileHash の値が公式公開値と一致し、サイズが期待値と合う'
+    fb:
+      - 'curl.exe 不在は winget install cURL.cURL、または BITS: Start-BitsTransfer'
+      - 'ブラウザ必須のダウンロードは browser-automation を使う'
+      - 'ハッシュ不一致は再取得し、それでも不一致なら別ミラー/公式 Releases へ'
+    rel: [filesystem, powershell, web-archiving]
+    no: ['ダウンロード物を未検証で実行しない', '展開先ディレクトリ内でインタプリタ/ビルドを実行しない', '大量の既存ファイルの上書き・削除をしない']
+    risk: medium

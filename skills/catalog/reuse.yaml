@@ -1,0 +1,18 @@
+# 指示書の項目のうち、Hermes 既存機能をそのまま使うもの（KiriDev 側で再実装しない）
+reused:
+  - {spec: "Skill Registry / Skill Index", hermes: "skills ディレクトリ + system prompt の skills index（skills_list / skill_view の progressive disclosure）"}
+  - {spec: "/review", hermes: "built-in /review（独立 reviewer subagent）。観点は quality/code-review Skill"}
+  - {spec: "/rollback, rollback", hermes: "built-in /rollback + /snapshot（filesystem checkpoints）"}
+  - {spec: "/worktree, git-worktree", hermes: "built-in /worktree（CLI）"}
+  - {spec: "/handoff（別PC引き継ぎ）", hermes: "built-in /handoff は messaging platform への引き継ぎで別物 → KiriDev 版は /kiri-handoff"}
+  - {spec: "pdf", hermes: "bundled skill pdf（productivity/pdf）"}
+  - {spec: "systematic debugging / tdd 補助", hermes: "bundled skills systematic-debugging, test-driven-development"}
+  - {spec: "Claude Code / Codex escalation", hermes: "bundled skills claude-code, codex（CLI へ委譲）+ /model provider 切替 + fallback_providers"}
+  - {spec: "Tool Router（MCP/plugin tool の遅延公開）", hermes: "Tool Search（tool_search/tool_describe/tool_call）+ toolsets"}
+  - {spec: "Model Fallback（provider 障害時）", hermes: "config.yaml fallback_providers（turn 単位で自動切替）"}
+  - {spec: "Permission Policy 実行層", hermes: "approvals.mode=smart + approvals.deny + smart_policy, --yolo"}
+  - {spec: "Context Overflow", hermes: "compression（自動要約）+ /compress + delegate_task subagent"}
+  - {spec: "Self Improvement", hermes: "background review / curator / /refine（skill_manage で候補 patch）"}
+  - {spec: "cron / overnight 継続", hermes: "cronjob tool / hermes cron, /goal, /heartbeat"}
+  - {spec: "Logging / State (SQLite)", hermes: "%LOCALAPPDATA%\\hermes\\state.db（sessions, tool calls）+ kanban.db。KiriDev 追加分は .kiridev/state.db"}
+  - {spec: "Skill 作成", hermes: "skill_manage tool, /learn, bundled hermes-agent-skill-authoring"}

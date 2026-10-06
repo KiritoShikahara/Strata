@@ -1,0 +1,293 @@
+category: development
+defaults:
+  tools: [terminal]
+  fallback: ['tool-missing: Get-Command → winget/pip/npm で導入 → 代替ツール']
+  risk: low
+skills:
+  - name: git
+    d: Git の status/diff/log/branch/stash/worktree 操作
+    tr: [git, commit, branch, diff, stash, worktree, 履歴]
+    tools: [terminal, read_file]
+    opt: [search_files]
+    deps: [git]
+    steps:
+      - 'git status -sb と git diff --stat で現状と変更範囲を確認する'
+      - 'git log --oneline --graph -20 で履歴を把握し、git branch -vv でブランチ関係を見る'
+      - '作業退避は git stash push -u -m "msg"、並行作業は git worktree add ..\wt-<name> <branch> を使う'
+      - 'git add -p で意図した hunk のみステージし git commit -m で小さくコミットする'
+      - '取り込みは git fetch 後に git merge --ff-only か git rebase を使い、衝突は git diff --name-only --diff-filter=U で特定する'
+    verify: 'git status -sb がクリーンで git log -1 --stat が意図した変更のみを示す'
+    fb:
+      - 'Get-Command git で確認し無ければ winget install Git.Git'
+      - 'GitHub Desktop / VS Code の Source Control を使う'
+      - '履歴が壊れたら git reflog から復元点を探す'
+    rel: [filesystem, powershell, checkpoint, debugging]
+    no:
+      - 'force-push と git reset --hard と git clean -fd は承認なしで実行しない'
+      - '.env や認証情報をコミットしない。push/公開は承認が必要'
+    risk: medium
+  - name: software-architecture
+    d: モジュール境界と依存方向を決めるアーキテクチャ設計
+    tr: [アーキテクチャ, 設計方針, レイヤー, モジュール分割, ADR]
+    tools: [read_file, search_files, write_file]
+    opt: [terminal]
+    deps: []
+    steps:
+      - 'Get-ChildItem -Recurse -Directory で現行構成を把握し主要エントリポイントを読む'
+      - '品質特性（性能・保守性・変更容易性）の優先順位を明文化する'
+      - 'モジュール境界と依存方向を図（Mermaid）で docs/architecture.md に書く'
+      - '選択肢ごとにトレードオフを比較し docs/adr/NNNN-title.md に ADR として残す'
+      - '最小の縦切り（walking skeleton）で設計を検証する'
+    verify: 'docs/adr に決定記録があり、依存方向が循環していない（madge/import-linter 等で確認）'
+    fb:
+      - '既存コードの grep で依存関係を手動集計する'
+      - 'PlantUML/Mermaid が使えなければ Markdown 表で代用'
+      - '判断が難しければ system-design/research で事例を調べる'
+    rel: [system-design, requirements-analysis, refactoring, research]
+    no:
+      - '要件根拠なく大規模再設計・全面書き換えを始めない'
+      - '外部有償サービスの契約・購入は承認なしで決めない'
+    risk: low
+  - name: system-design
+    d: スケール・可用性・データフローを含むシステム設計
+    tr: [システム設計, スケーラビリティ, 可用性, 構成図, キャパシティ]
+    tools: [read_file, write_file, web_search]
+    opt: [terminal]
+    deps: []
+    steps:
+      - '機能/非機能要件（RPS・データ量・SLO・遅延目標）を数値で列挙する'
+      - '概算でストレージ・帯域・QPS を見積もる'
+      - 'コンポーネント（API/DB/キャッシュ/キュー）とデータフローを Mermaid で描く'
+      - '単一障害点・ボトルネック・整合性方針（強/結果整合）を洗い出す'
+      - '段階的移行・ロールバック手順と監視項目を設計書にまとめる'
+    verify: '設計書に数値付き要件・構成図・障害時の挙動が揃い、各要件に対応する構成要素がある'
+    fb:
+      - '数値不明なら仮置きし前提として明記する'
+      - 'Mermaid が描画できなければ ASCII 図で代用'
+      - '類似事例を web_search で調査する'
+    rel: [software-architecture, database-design, requirements-analysis, research]
+    no:
+      - '本番インフラの変更・クラウド課金リソースの作成を承認なしで行わない'
+      - '機密情報を外部サービスへ貼り付けない'
+    risk: low
+  - name: requirements-analysis
+    d: 要件の抽出・曖昧さ解消・受け入れ基準の定義
+    tr: [要件, 仕様, 受け入れ基準, ユーザーストーリー, 要件定義]
+    tools: [read_file, write_file, clarify]
+    opt: [search_files]
+    deps: []
+    steps:
+      - '依頼文と既存 docs/README/issue を読み、目的・利用者・制約を抜き出す'
+      - '曖昧点は推測せず clarify で質問、または前提として明記する'
+      - 'ユーザーストーリーと Given/When/Then 形式の受け入れ基準を書く'
+      - 'スコープ内/外と優先度（MoSCoW）を分ける'
+      - '要件と受け入れ基準を docs/requirements.md に保存する'
+    verify: '各要件に検証可能な受け入れ基準があり、未解決の質問が 0 か明記されている'
+    fb:
+      - '質問できない場合は仮定リストを作り最小実装で確認する'
+      - '既存実装から逆算して仕様を復元する'
+      - 'research で類似プロダクトを調べる'
+    rel: [software-architecture, testing, tdd, strata]
+    no:
+      - '未確認の要件を事実として扱わない'
+      - '利用者への外部連絡・メール送信は承認なしで行わない'
+    risk: low
+  - name: refactoring
+    d: 挙動を変えず構造を改善する安全なリファクタリング
+    tr: [リファクタ, refactor, 整理, 重複排除, 命名変更]
+    tools: [terminal, read_file, patch, search_files]
+    opt: [execute_code]
+    deps: [git]
+    steps:
+      - '着手前に git status を確認し、テストを実行して緑のベースラインを取る'
+      - '特性化テストが無ければ現挙動を固定するテストを先に追加する'
+      - 'rg -n "<symbol>" で全参照を洗い、1 種類の変更（rename/extract）を小さく行う'
+      - '各ステップ後にテストを実行し、緑のまま git commit で区切る'
+      - 'git diff --stat で意図外の差分が無いか確認する'
+    verify: 'リファクタ前後でテストが同一結果（全通過）で、公開 API の差分が無い'
+    fb:
+      - 'テストが書けない場合は小さな単位に分け手動で入出力を比較する'
+      - 'IDE（VS Code/Rider）のリネーム機能を使う'
+      - '壊れたら git restore か checkpoint の地点へ戻る'
+    rel: [testing, git, debugging, verification]
+    no:
+      - '機能追加・挙動変更を同じコミットに混ぜない'
+      - 'git reset --hard / 大量ファイル削除は承認なしで行わない'
+    risk: medium
+  - name: debugging
+    d: 再現から根本原因特定・回帰テストまでの体系的デバッグ
+    tr: [バグ, エラー, 例外, 動かない, クラッシュ, debug]
+    tools: [terminal, read_file, search_files]
+    opt: [patch, execute_code]
+    deps: []
+    steps:
+      - '1. Reproduce: 最小の再現手順とコマンドを確定し、失敗を毎回再現できるようにする'
+      - '2. Collect evidence: エラー全文・スタックトレース・Get-WinEvent やログ・git log -S/git bisect で変更点を集める'
+      - '3. Hypotheses: 原因仮説を複数立て、各々を反証できる観測方法を決める'
+      - '4. Measure: ログ追加・デバッガ・プロファイラで実測し仮説を絞る。推測で直さない'
+      - '5. Root cause→Fix: 根本原因を特定し最小の修正を入れる'
+      - '6. Regression test→Verify: 失敗する回帰テストを追加し、全テストと元の再現手順で確認する'
+    verify: '回帰テストが修正前に失敗・修正後に成功し、元の再現手順で再発しない'
+    fb:
+      - '再現不能なら環境差（バージョン・PATH・環境変数）を比較する'
+      - 'git bisect run で原因コミットを二分探索する'
+      - 'ログ不足なら計装を足して再収集。詰まれば research で既知の issue を探す'
+    rel: [testing, verification, git, profiling-performance]
+    no:
+      - '推測だけの修正（根拠なし）をしない'
+      - 'テストを弱める・スキップして通さない。本番データ/機密ログを外部送信しない'
+    risk: low
+  - name: testing
+    d: テスト設計・実行・失敗解析（pytest/jest/dotnet test 等）
+    tr: [テスト, pytest, jest, unit test, カバレッジ, CI]
+    tools: [terminal, read_file, write_file]
+    opt: [patch, search_files]
+    deps: [pytest]
+    steps:
+      - '構成から runner を特定（pyproject.toml/package.json/*.csproj）'
+      - '対象テストのみ先に実行: pytest -q -x tests\test_x.py / npm test -- <pattern> / dotnet test --filter'
+      - '新規テストは正常系・境界値・異常系を AAA 形式で書く'
+      - '失敗は出力全文から原因を切り分け、テスト不備か実装不備か判定する'
+      - '最後に全体実行し pytest --cov 等でカバレッジを確認する'
+    verify: 'テストコマンドの終了コードが 0 で、追加テストが実装を壊すと失敗することを確認済み'
+    fb:
+      - 'pip install pytest / npm i -D jest で導入'
+      - '依存が壊れていれば venv を作り直す（python -m venv .venv）'
+      - 'ローカルで不可なら Docker/WSL 上で実行する'
+    rel: [tdd, debugging, verification, refactoring]
+    no:
+      - 'テストの削除・skip・期待値の改ざんで通さない'
+      - '本番 DB・外部 API への実接続テストを承認なしで実行しない'
+    risk: low
+  - name: tdd
+    d: Red→Green→Refactor によるテスト駆動開発
+    tr: [TDD, テスト駆動, red green, 先にテスト]
+    tools: [terminal, write_file, patch]
+    opt: [read_file]
+    deps: [pytest]
+    steps:
+      - '振る舞いを 1 つ選び、まず失敗するテストを書く'
+      - 'テストを実行し Red（期待した理由で失敗）を確認する'
+      - '通すための最小実装のみ書き Green にする'
+      - 'テスト緑のまま重複排除・命名改善を行う'
+      - '次の振る舞いへ進み、区切りごとに git commit する'
+    verify: '各サイクルで Red→Green を実行ログで確認でき、最終的に全テストが通る'
+    fb:
+      - 'テスト基盤が無ければ pytest/jest を導入'
+      - '外部依存が重ければ fake/stub で分離する'
+      - 'UI 等でテスト困難なら testing の統合テスト方針へ切替'
+    rel: [testing, refactoring, debugging, git]
+    no:
+      - 'Red を確認せず実装を先に書かない'
+      - 'テストを通すためだけの値ハードコードをしない'
+    risk: low
+  - name: profiling-performance
+    d: CPU/メモリのボトルネックを計測して特定する
+    tr: [遅い, パフォーマンス, プロファイル, メモリリーク, CPU 使用率]
+    tools: [terminal, read_file]
+    opt: [execute_code]
+    deps: [py-spy, dotnet-trace]
+    steps:
+      - '遅い操作と目標値を定義し、同一条件で 3 回以上計測してベースラインを取る'
+      - 'Python は python -m cProfile -o out.prof app.py か py-spy record -o p.svg --pid <pid>'
+      - '.NET は dotnet-trace collect / dotnet-counters、Node は node --prof / --inspect を使う'
+      - 'Windows 全体は Get-Counter "\Processor(_Total)\% Processor Time" や wpr/WPA で確認する'
+      - '上位のホットスポットのみ修正し、同条件で再計測して改善率を記録する'
+    verify: '修正前後の計測値（平均・p95）を比較し目標値を満たしている'
+    fb:
+      - 'pip install py-spy / dotnet tool install -g dotnet-trace'
+      - '標準の timeit / Measure-Command で粗く計測する'
+      - '管理者権限が要る場合は承認を得るか WSL 上で perf を使う'
+    rel: [benchmarking, debugging, testing, verification]
+    no:
+      - '計測せずに最適化しない'
+      - '可読性を大きく損なう変更や本番プロセスへの無承認アタッチをしない'
+    risk: low
+  - name: benchmarking
+    d: 再現可能なベンチマークの設計と結果比較
+    tr: [ベンチマーク, benchmark, hyperfine, 比較計測]
+    tools: [terminal, write_file]
+    opt: [read_file]
+    deps: [hyperfine]
+    steps:
+      - '比較対象と指標（時間・メモリ・スループット）と入力データを固定する'
+      - 'CLI は hyperfine --warmup 3 --runs 10 "cmd A" "cmd B" --export-json b.json'
+      - 'コード内は pytest-benchmark / BenchmarkDotNet / criterion 等を使う'
+      - '電源プラン高パフォーマンス・他アプリ停止など環境を揃え、環境情報も記録する'
+      - '平均・中央値・分散を表にして docs 等へ保存する'
+    verify: '複数回実行で分散が小さく、条件・環境・結果が再現可能な形で記録されている'
+    fb:
+      - 'winget install sharkdp.hyperfine で導入'
+      - '無ければ PowerShell の Measure-Command を反復実行する'
+      - '環境ノイズが大きければ WSL/Docker で隔離実行する'
+    rel: [profiling-performance, testing, verification]
+    no:
+      - '1 回だけの計測で結論を出さない'
+      - '結果の都合の良い部分だけを報告しない。外部への結果公開は承認が必要'
+    risk: low
+  - name: dependency-management
+    d: 依存パッケージの追加・更新・脆弱性確認
+    tr: [依存関係, パッケージ更新, npm, pip, NuGet, 脆弱性]
+    tools: [terminal, read_file, patch]
+    opt: [web_search]
+    deps: [pip, npm]
+    steps:
+      - 'lockfile と manifest（requirements.txt/pyproject.toml/package-lock.json/*.csproj）を確認する'
+      - '現状確認: pip list --outdated / npm outdated / dotnet list package --outdated'
+      - '脆弱性: pip-audit / npm audit / dotnet list package --vulnerable'
+      - '更新は 1 パッケージずつ行い、changelog の破壊的変更を確認する'
+      - '更新ごとにテスト実行し lockfile も一緒にコミットする'
+    verify: 'クリーンインストール後にビルドとテストが通り、audit の高重大度が 0'
+    fb:
+      - 'レジストリ到達不可ならミラー/キャッシュ（npm config get registry）を確認'
+      - '競合は venv/node_modules を再作成（確認の上）'
+      - 'Docker/WSL でクリーン環境を作り再現する'
+    rel: [build-systems, package-release, testing, git]
+    no:
+      - 'lockfile の手動編集や一括メジャーアップデートをしない'
+      - '出所不明パッケージ導入や非公式レジストリへの認証情報送信をしない'
+    risk: medium
+  - name: build-systems
+    d: ビルド構成の作成・修復（CMake/MSBuild/npm scripts 等）
+    tr: [ビルド, build, CMake, MSBuild, webpack, vite, コンパイルエラー]
+    tools: [terminal, read_file, patch]
+    opt: [search_files]
+    deps: [cmake, msbuild]
+    steps:
+      - 'ビルド定義（CMakeLists.txt/*.sln/package.json/Makefile）と必要ツールチェーンを特定する'
+      - 'クリーン環境で実行: cmake -S . -B build ; cmake --build build --config Release / dotnet build -c Release / npm run build'
+      - '最初のエラーから順に読み、リンク/パス/バージョン不一致を切り分ける'
+      - 'VS Build Tools 要件は vswhere.exe -latest や Developer PowerShell で確認する'
+      - '修正後クリーンビルドで再確認し、手順を README に反映する'
+    verify: 'クリーンな状態からビルドが終了コード 0 で成功し成果物が生成される'
+    fb:
+      - 'winget install Kitware.CMake / Microsoft.VisualStudio.2022.BuildTools'
+      - 'ツールチェーン差異は Docker/WSL のビルド環境で再現する'
+      - '別ジェネレータ（Ninja）やキャッシュ削除で再試行する'
+    rel: [dependency-management, package-release, debugging]
+    no:
+      - 'エラー抑制フラグ（警告無視・テスト除外）で通さない'
+      - 'システム全体の環境変数・PATH を承認なしで書き換えない'
+    risk: low
+  - name: package-release
+    d: バージョニング・成果物作成・リリース準備
+    tr: [リリース, release, バージョン, タグ, パッケージ化, publish]
+    tools: [terminal, read_file, patch]
+    opt: [write_file]
+    deps: [git]
+    steps:
+      - 'git status がクリーンで CI/テストが緑であることを確認する'
+      - 'SemVer に従いバージョンを更新し CHANGELOG.md を git log から整理する'
+      - '成果物を作成: python -m build / npm pack / dotnet publish -c Release'
+      - 'Get-FileHash -Algorithm SHA256 でハッシュを記録し、別ディレクトリで導入テストする'
+      - 'git tag -a vX.Y.Z -m "..." を作成する（push・公開は承認後）'
+    verify: '成果物をクリーン環境へ導入して起動/import でき、ハッシュと CHANGELOG が揃っている'
+    fb:
+      - 'build ツール不足は pip install build / winget で導入'
+      - '署名や公開が不可なら成果物とタグまでローカルで用意し手順を提示する'
+      - 'Docker でクリーンビルドして再現性を確認'
+    rel: [build-systems, dependency-management, git, testing]
+    no:
+      - 'PyPI/npm/GitHub Releases/ストアへの公開・タグ push は承認なしで行わない'
+      - 'トークン・署名鍵を出力・コミットしない'
+    risk: high

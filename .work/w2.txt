@@ -1,0 +1,6 @@
+development: git software-architecture system-design requirements-analysis refactoring debugging testing tdd profiling-performance benchmarking dependency-management build-systems package-release
+game-development: unity unity-editor unity-cli unity-profiling unreal-engine unreal-cpp unreal-blueprint unreal-build-tool gameplay-systems game-ai game-networking game-design game-debugging shader-hlsl asset-pipeline   (Unity/Unreal Editors run natively on Windows, never inside Docker)
+web-backend: frontend html-css react nodejs backend-api database-design mysql postgresql redis nginx websocket auth api-design
+creative: level-design story-writing creative-direction asset-generation 3d-pipeline blender-assist
+data: spreadsheet csv-tsv json yaml xml sqlite data-cleaning data-analysis statistics charting report-generation
+NOTE for debugging: must follow Reproduce -> Collect evidence -> Hypotheses -> Measure -> Root cause -> Fix -> Regression test -> Verify; never fix on guesswork. For git: status/diff/log/branch/stash/worktree, never force-push or reset --hard without approval.

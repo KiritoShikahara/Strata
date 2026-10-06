@@ -1,0 +1,277 @@
+category: quality
+defaults:
+  tools: [terminal, read_file]
+  fallback: ['tool-missing: Get-Command/where → winget/pip/npm/choco 導入 → portable 版 → Docker/WSL → 代替ツール']
+  risk: low
+skills:
+  - name: spec-compliance
+    d: 実装が仕様・要件を満たすかを項目単位で照合
+    tr: [仕様適合, 要件確認, 受け入れ基準, spec]
+    tools: [terminal, read_file, search_files]
+    opt: [todo]
+    deps: [git]
+    steps:
+      - '仕様/Issue/依頼文から受け入れ基準を番号付きチェックリスト化 (todo)'
+      - 'git diff main...HEAD --stat で変更範囲を確認し各基準に対応コードを rg で特定'
+      - '各基準を実コマンド/テストで実行確認し 満たす/不足/未実装 に分類'
+      - '仕様外の変更（スコープ逸脱）も列挙'
+      - '結果表を file:line 付きで報告'
+    verify: '全基準に判定と根拠 (コマンド出力 or file:line) が付いている'
+    fb:
+      - '仕様が曖昧 → 解釈案を明記して clarify'
+      - 'テスト不可 → 手動再現手順と結果を記録'
+      - 'rg 無し → Select-String -Recurse'
+    rel: [verification, testing, code-review, artifact-validation]
+    "no": ['未確認の基準を満たすと報告しない', '仕様を実装に合わせて書き換えない']
+    risk: low
+  - name: code-review
+    d: 差分をバグ・設計・保守性の観点でレビュー
+    tr: [コードレビュー, レビュー, PR確認, diff確認]
+    tools: [terminal, read_file, search_files]
+    opt: [delegate_task]
+    deps: [git]
+    steps:
+      - 'git diff --stat; git diff -U5 で全差分を読む（git log --oneline -10 で意図確認）'
+      - '正しさ→エラー処理→境界値→セキュリティ→性能→可読性の順に確認'
+      - '呼び出し元/先を rg -n で追い、影響範囲とテスト有無を確認'
+      - '指摘を 重大/中/軽微 に分け file:line と修正案を付ける'
+      - '良い点も簡潔に記載'
+    verify: '全変更ファイルを読了し、指摘に file:line と根拠がある'
+    fb:
+      - 'git 無し → 差分ファイルを Compare-Object で比較'
+      - '大差分 → ファイル単位に分割し delegate_task'
+      - 'static-analysis の結果で補強'
+    rel: [independent-review, static-analysis, testing, git]
+    "no": ['レビューのみで勝手にコードを修正しない', '推測だけで重大指摘をしない', 'PR への投稿・コメント送信は承認なしにしない']
+    risk: low
+  - name: independent-review
+    d: 実装者と別視点・別コンテキストでの独立検証
+    tr: [独立レビュー, セカンドオピニオン, 別視点, クロスチェック]
+    tools: [terminal, read_file, delegate_task]
+    opt: [search_files]
+    deps: []
+    steps:
+      - '実装者の説明を渡さず、要件と成果物(diff/ファイル)のみをレビュアーへ渡す'
+      - 'delegate_task または別モデル (model-router) で readonly レビューを依頼'
+      - 'レビュアーに受け入れ基準の再導出とテスト実行を求める'
+      - '実装者の結論と照合し、不一致点を調査して結論を出す'
+    verify: '独立した判定結果と実行ログがあり、不一致が解消または明記されている'
+    fb:
+      - 'delegate_task 不可 → 時間を置き要件のみから再レビュー'
+      - '別モデル利用不可 → チェックリスト方式で自己検証し限界を明記'
+    rel: [code-review, verification, model-router, spec-compliance]
+    "no": ['同一コンテキストの結論を独立と称さない', 'レビュアーに書込権限を与えない']
+    risk: low
+  - name: regression-testing
+    d: 変更で既存機能が壊れていないかを回帰テストで確認
+    tr: [回帰テスト, リグレッション, 既存テスト, 壊れていないか]
+    tools: [terminal, read_file]
+    opt: [search_files]
+    deps: [pytest, npm, git]
+    steps:
+      - '変更前の基準を取得: git stash; pytest -q または npm test を実行し結果を保存'
+      - '変更後に同コマンドを実行し 失敗テストを差分比較'
+      - '影響範囲を git diff --name-only と依存関係から特定し関連テストを優先'
+      - 'バグ修正なら再現テストを先に追加（修正前に失敗することを確認）'
+      - '新規失敗は原因を切り分け（変更起因 / flaky）、3回再実行で判定'
+    verify: '変更前後で pass/fail 数が比較でき、新規失敗が0'
+    fb:
+      - '自動テスト無し → 手動の再現手順＋characterization test を作成'
+      - 'pytest 無し → pip install pytest / python -m unittest'
+      - '環境依存 → Docker/WSL で実行'
+    rel: [testing, test-coverage, verification, debugging]
+    "no": ['失敗テストを削除/skip/弱体化して通さない', 'git stash で他者の変更を失わない (checkpoint 確認)']
+    risk: low
+  - name: test-coverage
+    d: テストカバレッジを計測し未検証領域を特定
+    tr: [カバレッジ, coverage, テスト網羅, 未テスト]
+    tools: [terminal, read_file]
+    opt: [write_file]
+    deps: [coverage, pytest-cov, c8]
+    steps:
+      - 'Python: pytest --cov=src --cov-report=term-missing --cov-branch'
+      - 'JS: npx c8 npm test もしくは jest --coverage'
+      - 'term-missing の未カバー行を読み、重要分岐（エラー/境界）を優先抽出'
+      - '優先度の高い未カバーに対しテスト追加を提案/実装'
+      - '数値だけでなくアサーションの質も確認'
+    verify: 'カバレッジ率の前後比較とテスト追加後の再計測結果がある'
+    fb:
+      - 'pytest-cov 無し → pip install pytest-cov / python -m coverage run -m pytest'
+      - 'ツール不可 → 手動で分岐を列挙しテスト有無を表にする'
+    rel: [testing, regression-testing, dead-code-removal]
+    "no": ['数値目的の無意味なテストを書かない', 'カバレッジ除外設定で数値を水増ししない']
+    risk: low
+  - name: static-analysis
+    d: 静的解析でバグ・脆弱性・危険パターンを検出
+    tr: [静的解析, セキュリティスキャン, bandit, semgrep]
+    tools: [terminal, read_file]
+    opt: [search_files]
+    deps: [bandit, semgrep, pip-audit, npm]
+    steps:
+      - 'Python: bandit -r src -ll; pip-audit; JS: npm audit --omit=dev'
+      - 'semgrep --config auto . （可能なら）'
+      - 'シークレット混入確認: rg -n "(api[_-]?key|secret|token)\s*=" （値は出力に出さない）'
+      - '検出を 重大度×到達可能性 で選別し誤検知を除外（理由を記載）'
+      - '修正または抑制は根拠付きで行う'
+    verify: '再実行で重大指摘が0、または残件が理由付きで一覧化されている'
+    fb:
+      - 'bandit 無し → pip install bandit'
+      - 'semgrep 無し → Docker (semgrep/semgrep) / WSL'
+      - '代替: ruff --select S / eslint-plugin-security'
+    rel: [lint-typecheck, code-review, permission-policy, doctor]
+    "no": ['検出されたシークレット値を出力/外部送信しない', '外部 SaaS へコードをアップロードしない（承認が必要）', '指摘を理由なく noqa で消さない']
+    risk: low
+  - name: lint-typecheck
+    d: lint と型チェックを実行して指摘を解消
+    tr: [lint, 型チェック, ruff, mypy, eslint, tsc]
+    tools: [terminal, read_file]
+    opt: [patch]
+    deps: [ruff, mypy, eslint, tsc]
+    steps:
+      - '設定確認: pyproject.toml / .eslintrc* / tsconfig.json'
+      - 'Python: ruff check . ; mypy src ； JS/TS: npx eslint . ; npx tsc --noEmit'
+      - '自動修正可は ruff check --fix / eslint --fix（差分を確認）'
+      - '残りは原因を修正（型を正しく付ける）'
+      - '再実行して0件を確認'
+    verify: 'ruff/mypy/eslint/tsc がすべて exit code 0'
+    fb:
+      - 'ruff 無し → pip install ruff / flake8'
+      - 'tsc 無し → npm i -D typescript / npx -p typescript tsc'
+      - '設定が無ければ既定設定で実行し旨を記録'
+    rel: [static-analysis, testing, code-review]
+    "no": ['# type: ignore / eslint-disable の乱用禁止', '大規模な自動整形を無関係ファイルへ波及させない']
+    risk: low
+  - name: performance-audit
+    d: プロファイルとベンチで性能ボトルネックを特定
+    tr: [性能, パフォーマンス, 遅い, プロファイル, ボトルネック]
+    tools: [terminal, read_file]
+    opt: [execute_code]
+    deps: [py-spy, cProfile, hyperfine]
+    steps:
+      - '再現可能な計測条件を固定し基準値を測定: Measure-Command { ... } / hyperfine'
+      - 'Python: python -m cProfile -o p.out script.py → pstats で上位関数を確認'
+      - '実行中プロセスは py-spy dump/record --pid'
+      - 'ボトルネック1点に絞り仮説→修正→再計測（1回に1変更）'
+      - '前後の数値を中央値/複数回で比較'
+    verify: '同条件の前後計測値が提示され、改善が誤差を超えている'
+    fb:
+      - 'hyperfine 無し → winget install sharkdp.hyperfine / Measure-Command を10回'
+      - 'py-spy 無し → pip install py-spy / cProfile'
+      - 'Windows 全体 → perfmon / Get-Counter'
+    rel: [debugging, memory-leak-analysis, testing, simplicity-yagni]
+    "no": ['計測なしの最適化をしない', '可読性を大きく損なう微最適化をしない']
+    risk: low
+  - name: memory-leak-analysis
+    d: メモリリーク・肥大化の調査と原因特定
+    tr: [メモリリーク, メモリ増加, OOM, tracemalloc]
+    tools: [terminal, read_file]
+    opt: [process]
+    deps: [tracemalloc, memray, objgraph]
+    steps:
+      - 'Get-Process -Name x | Select WS,PM,Handles を一定間隔で記録し増加傾向を確認'
+      - 'Python: tracemalloc.start(); snapshot 2点を compare_to(..., "lineno")'
+      - 'objgraph.show_growth() で増加オブジェクト型を確認'
+      - 'キャッシュ・グローバル・クロージャ・未解除リスナ・未closeリソースを rg で探索'
+      - '修正後に同負荷で再計測し横ばいを確認'
+    verify: '同一負荷の反復でメモリが安定（右肩上がりでない）ことをグラフ/数値で確認'
+    fb:
+      - 'memray 無し → pip install memray (WSL 推奨) / tracemalloc'
+      - 'Node: node --inspect と heap snapshot / --heapsnapshot-signal'
+      - '.NET: dotnet-counters / dotnet-dump'
+    rel: [performance-audit, debugging, long-running-task]
+    "no": ['本番プロセスを無断で kill/ダンプしない', 'ヒープダンプ(機密含む)を外部送信しない']
+    risk: low
+  - name: simplicity-yagni
+    d: YAGNI 観点で不要な機能・抽象を排して最小実装にする
+    tr: [YAGNI, シンプル, 最小実装, 過剰機能]
+    tools: [terminal, read_file, search_files]
+    opt: [patch]
+    deps: []
+    steps:
+      - '要件に対する変更を列挙し、要件に無い機能/設定/フックを抽出'
+      - '1実装しか無いインターフェース・未使用パラメータ・早すぎる汎用化を rg で探す'
+      - '標準ライブラリ/既存関数で置換できるものを確認'
+      - '削除・簡素化案を提示し、テスト通過を確認して適用'
+    verify: '簡素化後も全テスト通過し、要件に対応しない追加物が無い'
+    fb:
+      - '判断が割れる → 削除せず指摘として提示'
+      - 'テスト不足 → テスト追加後に簡素化'
+    rel: [overengineering-detection, dead-code-removal, code-review]
+    "no": ['要件を満たす機能まで削らない', '依頼範囲外のリファクタを行わない']
+    risk: low
+  - name: dead-code-removal
+    d: 未使用コード・依存・ファイルを特定して安全に削除
+    tr: [デッドコード, 未使用, 不要コード, vulture, knip]
+    tools: [terminal, read_file, search_files]
+    opt: [patch]
+    deps: [vulture, knip, depcheck]
+    steps:
+      - 'Python: vulture src --min-confidence 80 ； JS: npx knip / npx depcheck'
+      - '候補を rg -n で全参照確認（動的参照・リフレクション・設定ファイル・エントリポイント含む）'
+      - 'git log -S で経緯確認し、削除前に checkpoint/ブランチを作成'
+      - '1種類ずつ削除し都度テスト・ビルド'
+      - '削除一覧と根拠を報告'
+    verify: '削除後にテスト/ビルド/lint が通り、再スキャンで候補が減っている'
+    fb:
+      - 'vulture 無し → pip install vulture / ruff F401,F841'
+      - '判断不能 → 削除せず「要確認」として報告'
+    rel: [simplicity-yagni, checkpoint, git, test-coverage]
+    "no": ['大量ファイルの不可逆削除は承認が必要（git 管理下で復元可能にする）', '公開 API/動的参照の可能性があるものを根拠なく消さない']
+    risk: medium
+  - name: overengineering-detection
+    d: 過剰設計・不要な複雑性の兆候を検出して指摘
+    tr: [過剰設計, 複雑, オーバーエンジニアリング, 抽象化しすぎ]
+    tools: [terminal, read_file, search_files]
+    opt: []
+    deps: [radon, lizard]
+    steps:
+      - '複雑度計測: radon cc src -s -n C / lizard -C 15 src'
+      - '実装が1つだけの抽象層・Factory/Manager 乱立・多段委譲を rg で列挙'
+      - '要件の変更頻度に比べ設定可能/拡張点が多すぎないか確認'
+      - '行数・ファイル数・依存数を同等機能の素朴実装と比較'
+      - '簡素化案と影響を提示'
+    verify: '指摘ごとに file:line・複雑度値・簡素化案が揃っている'
+    fb:
+      - 'radon 無し → pip install radon / 手動でネスト深さを数える'
+      - '主観的判断は「提案」として区別'
+    rel: [simplicity-yagni, code-review, dead-code-removal]
+    "no": ['好みだけで大規模書換を強行しない', '承認なしに設計を変更しない']
+    risk: low
+  - name: release-readiness
+    d: リリース前チェック（テスト・版・変更履歴・成果物）
+    tr: [リリース準備, リリース前, 出荷判定, リリースチェック]
+    tools: [terminal, read_file]
+    opt: [todo]
+    deps: [git]
+    steps:
+      - 'git status --porcelain が空、対象ブランチ・タグ・バージョン番号 (pyproject/package.json) を確認'
+      - 'テスト・lint・型・ビルドを全実行（regression-testing, lint-typecheck）'
+      - 'CHANGELOG/README/移行手順の更新を確認、静的解析で脆弱性・シークレット確認'
+      - 'ビルド成果物をクリーン環境で起動検証 (artifact-validation)'
+      - 'Go/No-Go を根拠付きで報告'
+    verify: 'チェックリスト全項目に pass/fail と証跡があり、Go/No-Go が明示されている'
+    fb:
+      - 'CI 無し → ローカル全コマンドで代替し記録'
+      - 'クリーン環境不可 → 新規 venv / Docker / WSL'
+    rel: [verification, artifact-validation, regression-testing, static-analysis, git]
+    "no": ['publish / push / タグ付け / リリース公開は承認なしに実行しない', '失敗項目を除外して Go にしない', '認証情報を出力しない']
+    risk: medium
+  - name: artifact-validation
+    d: 生成物（ファイル・ビルド・文書）が正しく使えるか検証
+    tr: [成果物検証, 生成物確認, ビルド確認, 出力チェック]
+    tools: [terminal, read_file]
+    opt: [vision_analyze]
+    deps: []
+    steps:
+      - '存在・サイズ・更新時刻: Get-Item path | Select Length,LastWriteTime（0バイトでない）'
+      - '形式検証: JSON は python -m json.tool、YAML は yaml.safe_load、zip は Test-Archive/python -m zipfile -t'
+      - '実行物は --version / --help と最小入力で起動確認、Get-FileHash でハッシュ記録'
+      - '文書/画像は再読込またはレンダリングして目視 (vision_analyze)'
+      - '期待値（要件・サンプル）と内容を突合'
+    verify: '各成果物に 存在・形式・内容 の3点の確認結果がある'
+    fb:
+      - '検証ツール無し → Python 標準ライブラリで代替検証'
+      - '実行不可環境 → Docker/WSL/Windows Sandbox で確認'
+    rel: [verification, release-readiness, spec-compliance, office-rendering]
+    "no": ['未検証の成果物を完成と報告しない', '検証のため成果物を外部へ送信・公開しない']
+    risk: low

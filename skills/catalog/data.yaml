@@ -1,0 +1,248 @@
+category: data
+defaults:
+  tools: [terminal]
+  fallback: ['tool-missing: Get-Command → winget/pip で導入 → 代替ツール']
+  risk: low
+skills:
+  - name: spreadsheet
+    d: Excel/スプレッドシート（xlsx）の読み書き・数式・集計
+    tr: [Excel, xlsx, スプレッドシート, ピボット, 数式, シート]
+    tools: [terminal, read_file, execute_code]
+    opt: [write_file]
+    deps: [openpyxl, pandas]
+    steps:
+      - '原本は Copy-Item で作業用コピーを作り、コピー側のみ編集する'
+      - 'python -c "import openpyxl" で導入確認し、無ければ pip install openpyxl pandas'
+      - '構造把握: openpyxl.load_workbook(p, data_only=False) でシート名・範囲・数式を列挙する'
+      - '編集は pandas で集計/openpyxl でセル・書式・数式を書き込み、別名で保存する'
+      - '再読込して値・数式・結合セルが保たれているか確認する'
+    verify: '保存したファイルを再読込でき、行数/合計が元データと突合して一致する'
+    fb:
+      - 'openpyxl 不可なら xlsxwriter（新規作成）や pandas.to_excel'
+      - 'Excel が入っていれば PowerShell の COM（New-Object -ComObject Excel.Application）'
+      - 'CSV に変換して処理し、最後に xlsx へ戻す'
+    rel: [csv-tsv, data-analysis, charting, report-generation, universal-document-ingestion]
+    no:
+      - '原本の上書き・マクロ付き（.xlsm）の無確認実行をしない'
+      - '機密データを外部サービスへ送信しない'
+    risk: low
+  - name: csv-tsv
+    d: CSV/TSV の読み込み・変換・検証（文字コード/区切り対応）
+    tr: [CSV, TSV, 区切り文字, 文字化け, Shift_JIS, 変換]
+    tools: [terminal, execute_code]
+    opt: [read_file, write_file]
+    deps: [pandas]
+    steps:
+      - 'Get-Content -TotalCount 5 .\f.csv と file/chardet で文字コード（UTF-8/BOM/cp932）と区切りを確認する'
+      - 'pandas.read_csv(p, encoding="cp932", sep=",", dtype=str) で型崩れを防いで読む'
+      - '行数・列数・欠損・重複キーを集計し壊れた行（引用符/改行）を特定する'
+      - '変換は to_csv(encoding="utf-8-sig", index=False) で別ファイルに出力する'
+      - '簡易処理は Import-Csv / Export-Csv -Encoding utf8 も使える'
+    verify: '出力の行数が入力と一致（または意図した差）し、Excel/pandas で文字化け無く開ける'
+    fb:
+      - 'pip install pandas chardet で導入'
+      - '巨大ファイルは chunksize か Polars/DuckDB で処理'
+      - 'pandas 不可は標準 csv モジュール/Import-Csv'
+    rel: [spreadsheet, data-cleaning, json, sqlite]
+    no:
+      - '入力ファイルを直接上書きしない'
+      - '個人情報を含む CSV を外部送信しない'
+    risk: low
+  - name: json
+    d: JSON の整形・検証・変換・クエリ（jq/Python/PowerShell）
+    tr: [JSON, jq, JSON Schema, 整形, パース, ConvertFrom-Json]
+    tools: [terminal, execute_code]
+    opt: [read_file, write_file]
+    deps: [jq, jsonschema]
+    steps:
+      - '妥当性確認: Get-Content f.json -Raw | ConvertFrom-Json か python -m json.tool f.json'
+      - '構造を確認し必要部分を抽出: jq ".items[] | {id,name}" f.json または ConvertFrom-Json の Select-Object'
+      - '変換は ConvertTo-Json -Depth 20（既定の深さ 2 で切れるため必須）で別ファイルへ出力する'
+      - 'スキーマ検証は jsonschema -i data.json schema.json'
+      - 'JSONL は 1 行ずつ処理しメモリを抑える'
+    verify: 'python -m json.tool が成功し、スキーマ検証エラー 0、件数が期待通り'
+    fb:
+      - 'winget install jqlang.jq、または Python/PowerShell のみで処理'
+      - '壊れた JSON は行番号付きエラーから修復（末尾カンマ・コメント）'
+      - 'JSON5/コメント付きは json5 パッケージを使う'
+    rel: [yaml, csv-tsv, api-design, data-cleaning]
+    no:
+      - '元ファイルを直接上書きしない'
+      - 'トークン等の Secret を含む JSON を出力・送信しない'
+    risk: low
+  - name: yaml
+    d: YAML の編集・検証・変換（インデント/型の落とし穴対策）
+    tr: [YAML, yml, インデント, 設定ファイル, CI 設定, compose]
+    tools: [terminal, read_file, patch]
+    opt: [execute_code]
+    deps: [PyYAML, yamllint]
+    steps:
+      - 'python -c "import yaml;yaml.safe_load(open(f,encoding=\"utf-8\"))" で構文を確認する'
+      - 'yamllint f.yml でインデント（空白 2、タブ禁止）・重複キーを検査する'
+      - 'no/yes/on/off や 1.0 など型が変わる値、: # を含む文字列は引用符で囲む'
+      - '編集は patch で最小差分にし、コメントを保持したい場合は ruamel.yaml を使う'
+      - '変換が必要なら safe_load → json.dump で JSON 化し差分確認する'
+    verify: 'safe_load が成功し yamllint エラー 0、読み込んだ値の型が意図通り'
+    fb:
+      - 'pip install pyyaml yamllint ruamel.yaml で導入'
+      - 'docker compose config / kubectl --dry-run など対象ツールの検証を使う'
+      - 'yq（winget install MikeFarah.yq）で構造操作'
+    rel: [json, xml, data-cleaning, build-systems]
+    no:
+      - 'yaml.load（unsafe）で信頼できないファイルを読まない'
+      - 'Secret を含む設定を平文でコミット・送信しない'
+    risk: low
+  - name: xml
+    d: XML の解析・XPath 抽出・変換・検証
+    tr: [XML, XPath, XSLT, XSD, パース, csproj, SVG]
+    tools: [terminal, execute_code]
+    opt: [read_file, patch]
+    deps: [lxml]
+    steps:
+      - '整形式確認: [xml](Get-Content f.xml -Raw) か python -c "import lxml.etree as E;E.parse(\"f.xml\")"'
+      - '抽出: Select-Xml -Path f.xml -XPath "//item[@id]" または lxml の tree.xpath'
+      - '名前空間は ns マップを指定して XPath を書く'
+      - '編集は DOM で行い、Save 時に文字コード宣言（UTF-8）とインデントを保つ'
+      - 'XSD があれば xmllint --noout --schema s.xsd f.xml で検証する'
+    verify: 'パースエラー 0、XSD 検証成功、XPath の抽出件数が期待通り'
+    fb:
+      - 'pip install lxml、標準 xml.etree.ElementTree で代替'
+      - 'xmllint は winget/choco で導入、または lxml で検証'
+      - '巨大 XML は iterparse でストリーム処理'
+    rel: [json, yaml, data-cleaning, csv-tsv]
+    no:
+      - '信頼できない XML を外部実体展開有効で読まない（XXE）'
+      - '元ファイルを直接上書きしない'
+    risk: low
+  - name: sqlite
+    d: SQLite DB の作成・クエリ・インポート/エクスポート
+    tr: [SQLite, sqlite3, .db, ローカル DB, SQL]
+    tools: [terminal, execute_code]
+    opt: [read_file, write_file]
+    deps: [sqlite3]
+    steps:
+      - 'sqlite3 -version か Python 標準 sqlite3 で利用可否を確認し、DB は先に Copy-Item でバックアップする'
+      - '構造確認: sqlite3 x.db ".tables" ".schema <table>"'
+      - 'CSV 取り込み: sqlite3 x.db ".mode csv" ".import --skip 1 f.csv tbl"'
+      - '更新系は BEGIN; … ; 結果確認 → COMMIT/ROLLBACK で行い、パラメータバインドを使う'
+      - 'EXPLAIN QUERY PLAN と CREATE INDEX で遅いクエリを改善し PRAGMA integrity_check で検査する'
+    verify: 'PRAGMA integrity_check が ok で、件数/集計が元データと一致する'
+    fb:
+      - 'winget install SQLite.SQLite、または Python の sqlite3 モジュールを使う'
+      - 'ロック時（database is locked）は他プロセス確認と PRAGMA busy_timeout'
+      - 'DuckDB で CSV を直接クエリする'
+    rel: [csv-tsv, database-design, data-analysis, postgresql]
+    no:
+      - 'バックアップ無しで DROP/DELETE（WHERE 無し）をしない'
+      - 'DB ファイルを外部へ送信しない'
+    risk: medium
+  - name: data-cleaning
+    d: 欠損・重複・表記ゆれ・型の整形（クレンジング）
+    tr: [データクレンジング, 欠損値, 重複, 表記ゆれ, 正規化, 外れ値]
+    tools: [terminal, execute_code]
+    opt: [read_file, write_file]
+    deps: [pandas]
+    steps:
+      - 'df.info() / df.describe(include="all") / df.isna().sum() で品質を診断する'
+      - '型変換（pd.to_datetime/to_numeric(errors="coerce")）と全半角・空白（str.strip, unicodedata.normalize("NFKC")）を統一する'
+      - '重複は df.duplicated(subset=キー, keep=False) で確認後に除去ルールを決める'
+      - '欠損・外れ値は削除/補完/フラグ化のどれにするか理由を記録する'
+      - '整形前後の件数と変更ログ（何行どう変えたか）を出力し、結果は別ファイルへ保存する'
+    verify: '整形後の期待制約（キー一意・型・範囲）を assert で確認でき、行数の増減が説明できる'
+    fb:
+      - 'pip install pandas で導入、巨大データは Polars/DuckDB'
+      - '自動判断が危険な箇所は候補を一覧化し確認を求める'
+      - 'PowerShell の Import-Csv | Sort-Object -Unique で簡易処理'
+    rel: [csv-tsv, data-analysis, spreadsheet, statistics]
+    no:
+      - '原データを上書きしない（常に別名出力）'
+      - '理由のない欠損値の削除や値の捏造をしない'
+    risk: low
+  - name: data-analysis
+    d: 探索的データ分析（EDA）と傾向・要因の把握
+    tr: [データ分析, 集計, EDA, 傾向, 相関, pandas]
+    tools: [terminal, execute_code]
+    opt: [read_file, write_file]
+    deps: [pandas, matplotlib]
+    steps:
+      - '分析の問い・指標・期間・単位を先に明文化する'
+      - 'data-cleaning 済みデータで df.groupby / pivot_table による集計を行う'
+      - '分布・相関・時系列を確認し、外れ値と季節性を調べる'
+      - '仮説は statistics の手法で検定し、効果量も併記する'
+      - '結論・根拠数値・限界（サンプル/バイアス）を report-generation でまとめる'
+    verify: '各結論に再実行可能なコード/数値があり、集計合計が元データと一致する'
+    fb:
+      - 'pip install pandas matplotlib seaborn jupyter で導入'
+      - '大規模は DuckDB/Polars、小規模は Excel ピボットで代替'
+      - '再現性のため uv/venv を作り requirements を固定'
+    rel: [data-cleaning, statistics, charting, report-generation, sqlite]
+    no:
+      - '結論に合う結果だけを選ばない（p-hacking）'
+      - '個人データを外部サービスへ送信しない'
+    risk: low
+  - name: statistics
+    d: 統計検定・信頼区間・回帰の適切な適用と解釈
+    tr: [統計, t 検定, 信頼区間, 回帰, p 値, 分散分析, 相関]
+    tools: [terminal, execute_code]
+    opt: [read_file]
+    deps: [scipy, statsmodels]
+    steps:
+      - 'データの種類（連続/カテゴリ・対応有無）と問いから手法を選ぶ'
+      - '前提（正規性 scipy.stats.shapiro・等分散 levene・独立性）を確認する'
+      - '検定: scipy.stats.ttest_ind / mannwhitneyu / chi2_contingency、回帰は statsmodels.api.OLS'
+      - 'p 値だけでなく効果量と 95% 信頼区間を算出し、多重比較は補正（Bonferroni/BH）する'
+      - '仮定・手法・結果・解釈をまとめ乱数シードも記録する'
+    verify: '前提の確認結果と検定の統計量・p 値・効果量・信頼区間が再実行で一致する'
+    fb:
+      - 'pip install scipy statsmodels pingouin で導入'
+      - '前提を満たさなければノンパラメトリック/ブートストラップへ切替'
+      - 'R があれば Rscript で交差確認する'
+    rel: [data-analysis, data-cleaning, charting, report-generation]
+    no:
+      - '結果に合わせた検定の選び直しや p 値の恣意的な丸めをしない'
+      - '標本が小さいのに強い因果主張をしない'
+    risk: low
+  - name: charting
+    d: グラフ作成（matplotlib/plotly）と可視化の選定
+    tr: [グラフ, チャート, 可視化, matplotlib, plotly, 棒グラフ, 折れ線]
+    tools: [terminal, execute_code]
+    opt: [vision_analyze, write_file]
+    deps: [matplotlib, plotly]
+    steps:
+      - '伝えたい比較（推移/比較/構成/分布）に合うグラフ種別を選ぶ'
+      - 'matplotlib で fig, ax = plt.subplots(figsize=(8,4.5)) を作り軸ラベル・単位・タイトルを付ける'
+      - '日本語は font（Yu Gothic / Meiryo）を rcParams["font.family"] に設定して文字化けを防ぐ'
+      - 'plt.savefig("out.png", dpi=200, bbox_inches="tight")、対話用は plotly の write_html'
+      - 'vision_analyze で凡例・重なり・色覚配慮を確認する'
+    verify: '出力画像が開け、軸・単位・日本語が正しく表示され、数値が元データと一致する'
+    fb:
+      - 'pip install matplotlib plotly kaleido で導入'
+      - 'Python 不可は Excel/PowerShell の Chart、または Mermaid/ASCII 表'
+      - '豆腐（文字化け）は japanize-matplotlib かフォントパスを直接指定'
+    rel: [data-analysis, report-generation, spreadsheet, html-css]
+    no:
+      - '軸の切り詰め等で誤解を招く表現をしない'
+      - '機密データのグラフを外部へ送信/公開しない'
+    risk: low
+  - name: report-generation
+    d: 分析結果のレポート（Markdown/HTML/PDF/docx）作成
+    tr: [レポート, 報告書, 分析結果まとめ, PDF 出力, docx, 資料作成]
+    tools: [write_file, terminal]
+    opt: [read_file, execute_code, vision_analyze]
+    deps: [pandoc, python-docx]
+    steps:
+      - '読み手と目的を決め、結論→根拠→方法→限界→次アクションの順に構成する'
+      - '数値は分析コードから自動出力（表・グラフ）して転記ミスを防ぐ'
+      - 'Markdown で本文を作成し図表を相対パスで埋め込む'
+      - '変換: pandoc report.md -o report.docx（または --pdf-engine=xelatex / HTML は --standalone）'
+      - '出力を開いて体裁・文字化け・図表番号を確認する'
+    verify: '出力ファイルが開け、数値が元の分析結果と一致し、全図表に参照・出典がある'
+    fb:
+      - 'winget install JohnMacFarlane.Pandoc で導入'
+      - 'PDF 不可は HTML 出力→ブラウザ印刷、または python-docx で docx 生成'
+      - '日本語 PDF が崩れる場合は --pdf-engine=lualatex と日本語フォント指定'
+    rel: [data-analysis, charting, spreadsheet, statistics, universal-document-ingestion]
+    no:
+      - 'レポートのメール送信・共有・公開は承認なしで行わない'
+      - '根拠のない数値や出典不明の引用を載せない'
+    risk: low

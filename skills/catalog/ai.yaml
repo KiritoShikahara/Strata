@@ -1,0 +1,423 @@
+category: ai
+defaults:
+  tools: [terminal]
+  risk: low
+skills:
+  - name: local-llm
+    d: ローカル LLM サーバー(Strata/LM Studio)の起動と接続確認
+    tr: [ローカルLLM, Strata, LM Studio, 8080, 1234]
+    tools: [terminal, read_file]
+    opt: [patch]
+    deps: [curl.exe]
+    steps:
+      - 'Invoke-RestMethod http://127.0.0.1:8080/v1/models で Strata の応答とモデル名を確認'
+      - '無応答なら Get-NetTCPConnection -LocalPort 8080 と Strata の起動ログを確認、LM Studio は :1234 を確認'
+      - '%LOCALAPPDATA%\hermes\config.yaml の base_url・model が稼働中のサーバーと一致するか確認'
+      - 'POST /v1/chat/completions に短いプロンプトを送り応答を確認'
+    verify: '/v1/models が 200 で、chat/completions が内容を返す'
+    fb:
+      - 'Strata 不調なら LM Studio(:1234)へ base_url を切替'
+      - 'ポート競合は Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess で確認'
+      - 'いずれも不可なら llama-cpp skill で llama-server を直接起動'
+    rel: [llama-cpp, model-selection, doctor]
+    no: ['config.yaml の API キーを出力・送信しない', '他プロセスを承認なしで kill しない', '0.0.0.0 への外部公開をしない']
+    risk: medium
+  - name: llama-cpp
+    d: llama.cpp(llama-server/llama-cli)の導入と実行
+    tr: [llama.cpp, llama-server, GGUF, llama-cli]
+    tools: [terminal]
+    opt: [read_file]
+    deps: [llama-server, winget]
+    steps:
+      - 'Get-Command llama-server で存在確認、llama-server --version でビルドと CUDA/Vulkan 対応を確認'
+      - 'llama-server -m <model.gguf> -c 8192 -ngl 99 --host 127.0.0.1 --port 8080 で起動'
+      - 'Invoke-RestMethod http://127.0.0.1:8080/health で起動確認'
+      - '性能は llama-bench -m <model.gguf> -ngl 99 で計測'
+    verify: '/health が ok を返し、/v1/chat/completions が応答する'
+    fb:
+      - '不在なら winget install ggml.LlamaCpp、または GitHub Releases の win-cuda/vulkan zip を空ディレクトリへ展開'
+      - 'VRAM 不足は -ngl を下げる・-c を縮小・小さい量子化へ'
+      - 'ネイティブ不可は Docker(ghcr.io/ggml-org/llama.cpp:server)か WSL でビルド'
+    rel: [local-llm, quantization, gpu-offload]
+    no: ['--host 0.0.0.0 での公開を承認なしでしない', '信頼できない GGUF/バイナリを未検証で実行しない']
+    risk: medium
+  - name: model-selection
+    d: 用途・VRAM に合うモデルとサイズを選定する
+    tr: [モデル選定, どのモデル, Qwen, VRAM]
+    tools: [terminal, web_search]
+    opt: [web_extract]
+    deps: [nvidia-smi]
+    steps:
+      - 'nvidia-smi --query-gpu=name,memory.total,memory.used --format=csv で VRAM 空きを確認'
+      - '用途(コード/日本語/ツール呼び出し/視覚)と必要コンテキスト長を整理'
+      - 'モデルカード(HuggingFace)でライセンス・ツール対応・GGUF サイズを確認'
+      - '候補を「重み+KV キャッシュ ≦ VRAM 空き」で絞り、model-evaluation で比較'
+    verify: '選定モデルが実際にロードでき、必要 ctx で OOM しない'
+    fb:
+      - 'nvidia-smi 不在は Get-CimInstance Win32_VideoController で GPU 確認'
+      - '収まらなければ量子化を下げるか小モデルへ'
+      - '性能不足はクラウド provider へ model-router で切替'
+    rel: [quantization, gpu-offload, model-evaluation, model-router]
+    no: ['ライセンス未確認のモデルを配布用途に選ばない']
+    risk: low
+  - name: quantization
+    d: GGUF 量子化の選択・変換・品質比較
+    tr: [量子化, quant, IQ3_XXS, Q4_K_M, imatrix]
+    tools: [terminal]
+    opt: [web_search]
+    deps: [llama-quantize, python]
+    steps:
+      - '既存 GGUF の量子化種別を確認(ファイル名または llama-server 起動ログの file type)'
+      - '変換: python convert_hf_to_gguf.py <hf_dir> --outfile model-f16.gguf'
+      - 'llama-quantize [--imatrix imatrix.dat] model-f16.gguf model-Q4_K_M.gguf Q4_K_M'
+      - 'llama-perplexity -m <gguf> -f wiki.test.raw で劣化を比較'
+    verify: '出力 GGUF がロードでき、perplexity が基準比で許容範囲内'
+    fb:
+      - 'llama-quantize 不在は llama-cpp skill で導入'
+      - '品質低下が大きい(IQ3_XXS 等)なら Q4_K_M/Q5_K_M へ'
+      - 'ディスク不足は配布済み量子化 GGUF を HuggingFace から取得'
+    rel: [llama-cpp, model-selection, model-evaluation]
+    no: ['元モデルファイルを上書き・削除しない', '出力は新規パスへ書く']
+    risk: low
+  - name: gpu-offload
+    d: GPU オフロード層数・VRAM 配分のチューニング
+    tr: [ngl, オフロード, VRAM不足, OOM, 高速化]
+    tools: [terminal]
+    opt: [read_file]
+    deps: [nvidia-smi, llama-server]
+    steps:
+      - 'nvidia-smi -l 1 で VRAM 使用量を監視しながら起動する'
+      - '-ngl 99 から始め OOM なら 10 ずつ減らす、ログの offloaded N/M layers を確認'
+      - 'KV キャッシュ削減: -c を縮小、-ctk q8_0 -ctv q8_0 -fa で量子化'
+      - 'llama-bench -ngl <n> で t/s を比較し最速設定を採用'
+    verify: 'OOM 無しで起動し、llama-bench の t/s が最良値を記録'
+    fb:
+      - 'CUDA 版不可は Vulkan ビルド(llama-cpp)を試す'
+      - '他アプリの VRAM 占有は終了をユーザーに依頼'
+      - '収まらなければ小モデル/低 bit 量子化へ(model-selection)'
+    rel: [llama-cpp, quantization, model-selection]
+    no: ['GPU ドライバ・電力設定を承認なしで変更しない', '他プロセスを勝手に終了しない']
+    risk: low
+  - name: context-engineering
+    d: コンテキスト構成・長さ・配置を設計し精度を保つ
+    tr: [コンテキスト設計, 長文, context window, 文脈]
+    tools: [read_file, write_file]
+    opt: [terminal]
+    deps: []
+    steps:
+      - 'モデルの実 ctx(-c)と出力予約分を確認し、入力の予算(トークン)を決める'
+      - '指示→必須情報→参考資料→質問の順に配置し、重要事項は先頭と末尾に置く'
+      - '不要なログ・重複を除き、必要箇所のみ行範囲指定で投入する'
+      - '長大化したら context-compression で要約して差し替える'
+    verify: '入力トークン + 出力予約が ctx 以内で、期待どおり回答する'
+    fb:
+      - 'ctx 超過は分割処理か RAG(rag skill)へ'
+      - 'ローカルの ctx 不足は -c 拡張(VRAM 要確認)かクラウド長文モデルへ'
+      - '精度低下時は few-shot を減らし指示を簡潔化'
+    rel: [context-compression, prompt-engineering, context-builder, rag]
+    no: ['Secret・個人情報をコンテキストに混入しない']
+    risk: low
+  - name: prompt-engineering
+    d: プロンプトを設計・改善し出力品質を安定させる
+    tr: [プロンプト, 指示文, few-shot, 出力形式]
+    tools: [read_file, write_file]
+    opt: [terminal]
+    deps: []
+    steps:
+      - '目的・入力・出力形式(JSON スキーマ等)・禁止事項を明示した指示を書く'
+      - '小型ローカルモデル向けに短い文・箇条書き・具体例 1〜3 個にする'
+      - '代表入力 5〜10 件で実行し失敗パターンを分類する'
+      - '失敗点に対して指示を 1 点ずつ修正し再実行して比較する'
+    verify: '評価入力セットで形式遵守率・正答率が改善している'
+    fb:
+      - '形式不安定は response_format / JSON schema 制約や grammar(--grammar-file)を使う'
+      - '小モデルで限界なら model-router で上位モデルへ'
+      - '指示が長すぎるなら分割し段階実行'
+    rel: [context-engineering, model-evaluation, skill-authoring]
+    no: ['ガードレール回避を目的とした指示を書かない']
+    risk: low
+  - name: context-compression
+    d: 長い会話・資料を情報を保って圧縮する
+    tr: [要約, 圧縮, compact, コンテキスト圧縮]
+    tools: [read_file, write_file]
+    opt: [delegate_task, memory]
+    deps: []
+    steps:
+      - '圧縮対象を「決定事項/未解決/重要ファイルパス/制約/次の作業」に分類'
+      - '決定事項・パス・コマンド・数値は原文のまま残し、経緯のみ要約'
+      - '要約を notes\summary.md に保存し元ログへのポインタを付ける'
+      - '長大資料は delegate_task で章ごとに要約後、統合する'
+    verify: '要約のみで次の作業を再開でき、重要な数値・パスが欠落していない'
+    fb:
+      - '要約でも長い場合は階層要約(章→全体)'
+      - '精度が重要な箇所は要約せず該当範囲のみ再読込'
+      - 'ローカルモデル不調時は抽出的要約(見出し+先頭文)'
+    rel: [context-engineering, memory-design, checkpoint]
+    no: ['原本を要約で上書きしない', 'Secret を要約に含めない']
+    risk: low
+  - name: rag
+    d: ドキュメント検索拡張生成(RAG)を構築・運用する
+    tr: [RAG, 検索拡張, ベクトルDB, ナレッジ検索]
+    tools: [terminal, write_file, read_file]
+    opt: [execute_code]
+    deps: [python, chromadb]
+    steps:
+      - '対象文書を収集しチャンク化(500〜1000 文字、重なり 10〜20%)する'
+      - 'embedding-search skill で埋め込みを作成し ChromaDB/FAISS(rag\index)に保存'
+      - '質問を埋め込み、上位 k=3〜5 件を取得してプロンプトに出典付きで投入'
+      - '代表質問で回答の根拠一致を確認し、チャンクサイズ・k を調整'
+    verify: '評価質問で回答が取得チャンクに基づき、出典が提示される'
+    fb:
+      - 'chromadb 不可は pip install faiss-cpu か SQLite+numpy の総当たり'
+      - 'pip 不可は Get-Command python -> winget install Python.Python.3.12'
+      - '検索精度不足は BM25(rank-bm25)との併用'
+    rel: [embedding-search, context-engineering, universal-document-ingestion]
+    no: ['機密文書を外部 Embedding API へ承認なしで送らない']
+    risk: low
+  - name: embedding-search
+    d: 埋め込みモデルによる意味検索を実装する
+    tr: [埋め込み, embedding, 類似検索, ベクトル]
+    tools: [terminal, execute_code]
+    opt: [write_file]
+    deps: [python, numpy]
+    steps:
+      - '埋め込み源を決定: llama-server --embeddings -m <embed.gguf> --port 8081 または sentence-transformers'
+      - 'POST /v1/embeddings で入力を埋め込み、ベクトル次元を確認'
+      - 'コサイン類似度で上位 k 件を取得するスクリプトを作る'
+      - '既知の類似/非類似ペアで順位が妥当か確認'
+    verify: '類似ペアのスコアが非類似ペアより有意に高い'
+    fb:
+      - 'ローカル埋め込み不可は pip install sentence-transformers(multilingual-e5 等)'
+      - '日本語精度不足は多言語対応モデルへ変更'
+      - 'GPU 不足は CPU 実行・バッチ縮小'
+    rel: [rag, model-selection, llama-cpp]
+    no: ['機密データを外部 API に承認なしで送らない']
+    risk: low
+  - name: model-evaluation
+    d: モデルの品質・速度を再現可能な手順で評価する
+    tr: [モデル評価, 比較, ベンチ, 精度確認]
+    tools: [terminal, write_file]
+    opt: [execute_code]
+    deps: [python]
+    steps:
+      - '評価セット(10〜50 問、期待出力付き)を evals\<name>.jsonl に作成'
+      - '全モデルで temperature=0・同一プロンプトで /v1/chat/completions を実行'
+      - '正答率・形式遵守率・レイテンシ・t/s を表に集計する'
+      - '失敗例を分類し、結果を evals\results.md に保存'
+    verify: '同条件で再実行して結果が再現する'
+    fb:
+      - 'サーバー切替は config.yaml の base_url(:8080/:1234)を変更'
+      - '採点困難なら上位モデルを judge として使う(明記)'
+      - 'lm-evaluation-harness(pip install lm-eval)で標準ベンチを使用'
+    rel: [benchmark-suite, agent-evaluation, model-selection]
+    no: ['評価データに本番 Secret を含めない']
+    risk: low
+  - name: agent-evaluation
+    d: エージェントのタスク完遂率・安全性を評価する
+    tr: [エージェント評価, 成功率, タスク完遂, 回帰]
+    tools: [terminal, write_file, read_file]
+    opt: [delegate_task]
+    deps: [python]
+    steps:
+      - '代表タスク(読取/編集/検索/失敗復旧)を成功条件付きで evals\agent_tasks.yaml に定義'
+      - '隔離した作業ディレクトリでエージェントを実行しトレースを保存'
+      - '成功条件を自動判定(ファイル内容・終了コード)し、ステップ数・時間を記録'
+      - '失敗の原因(誤ツール/ループ/幻覚)を分類し改善点にする'
+    verify: 'タスク別の合否表があり、再実行で同じ判定になる'
+    fb:
+      - '自動判定不能なタスクはトレースを人手レビュー'
+      - 'ばらつきが大きい場合は各タスク 3 回実行して平均'
+      - '環境汚染時は新規ディレクトリで再実行'
+    rel: [tool-use-evaluation, model-evaluation, testing]
+    no: ['実データ・本番環境でテストしない', '外部送信を伴うタスクを評価に含めない']
+    risk: low
+  - name: tool-use-evaluation
+    d: ツール呼び出しの正確性・引数妥当性を評価する
+    tr: [ツール呼び出し, function calling, tool call 評価]
+    tools: [terminal, write_file]
+    opt: [execute_code]
+    deps: [python]
+    steps:
+      - 'tools スキーマ付きリクエストを /v1/chat/completions に送る(llama-server は --jinja が必要)'
+      - '期待ツール名・必須引数付きの評価ケースを 20 件前後用意する'
+      - 'tool_calls の名前一致率・JSON 妥当性・引数正答率を集計する'
+      - '失敗は引数欠落/幻覚ツール/不要呼び出しに分類する'
+    verify: '指標(名前一致・JSON 妥当・引数正答)が表で出力されている'
+    fb:
+      - 'tool_calls が出ない場合は --jinja とチャットテンプレートを確認'
+      - '小モデルで不安定ならツール数を減らし説明を簡潔化'
+      - '改善不能なら model-router で上位モデルへ'
+    rel: [agent-evaluation, mcp, llama-cpp]
+    no: ['評価中に破壊的ツールを実際に実行させない']
+    risk: low
+  - name: benchmark-suite
+    d: 標準ベンチと自前ベンチで性能を継続計測する
+    tr: [ベンチマーク, benchmark, llama-bench, 速度比較]
+    tools: [terminal]
+    opt: [write_file, execute_code]
+    deps: [llama-bench, python]
+    steps:
+      - 'llama-bench -m <gguf> -p 512 -n 128 -ngl 99 -o csv > bench\<model>.csv'
+      - '品質は lm_eval --model local-chat-completions --tasks <task> で実行'
+      - '条件(GPU・ドライバ・ctx・量子化・日付)を bench\README.md に記録'
+      - '前回結果と比較し退行を検出する'
+    verify: 'CSV が生成され、条件メタデータ付きで前回と比較できる'
+    fb:
+      - 'llama-bench 不在は llama-cpp skill で導入'
+      - '他負荷で値が揺れる場合は 3 回測定の中央値'
+      - 'lm-eval 不可は自前 evals で代替(model-evaluation)'
+    rel: [model-evaluation, gpu-offload, llama-cpp]
+    no: ['計測中に他の重い処理を並行しない']
+    risk: low
+  - name: mcp
+    d: MCP サーバーの導入・設定・接続確認
+    tr: [MCP, Model Context Protocol, mcp server, ツール連携]
+    tools: [terminal, read_file, patch]
+    opt: [web_search]
+    deps: [node, npx, uvx]
+    steps:
+      - '%LOCALAPPDATA%\hermes\config.yaml の mcp_servers 節を確認する'
+      - '公式/信頼できるサーバーを選定し npx -y <pkg> や uvx <pkg> で単体起動を試す'
+      - 'config.yaml に command・args・env を追記(Secret は環境変数参照)'
+      - 'Hermes 再起動後、公開されたツール一覧を確認し 1 件呼び出して動作確認'
+    verify: 'ツール一覧に MCP のツールが現れ、読み取り系を 1 回正常に呼べる'
+    fb:
+      - 'npx 不在は winget install OpenJS.NodeJS.LTS、uvx 不在は pip install uv'
+      - '起動失敗は同コマンドを terminal で直接実行しエラー確認'
+      - 'サーバー不可は同等機能を CLI ラッパーで代替'
+    rel: [agent-design, tool-router, permission-policy]
+    no: ['未検証の MCP パッケージを承認なしで導入しない', 'API キーを config に平文で書かない・出力しない', '書込み/削除系ツールの許可を承認なしで与えない']
+    risk: medium
+  - name: agent-design
+    d: エージェントの役割・ツール・制御フローを設計する
+    tr: [エージェント設計, ワークフロー, 役割分担, 設計]
+    tools: [read_file, write_file]
+    opt: [todo]
+    deps: []
+    steps:
+      - '目的・成功条件・入出力・失敗時挙動を 1 ページで定義する'
+      - '必要最小限のツールと権限(読取/書込/外部送信)を割り当てる'
+      - '手順を計画→実行→検証→復旧のループとして記述し停止条件を決める'
+      - '承認が必要な操作を明示し agent-evaluation で試験する'
+    verify: '設計書に成功条件・ツール権限・停止条件・承認点が揃っている'
+    fb:
+      - '複雑化したら単一エージェント+スキルに簡素化'
+      - '小モデルで破綻するなら手順を固定化しサブタスク分割'
+      - '権限が不明なら permission-policy に従い最小権限へ'
+    rel: [subagent-design, memory-design, permission-policy, mcp]
+    no: ['承認なしで外部送信・削除できる設計にしない']
+    risk: low
+  - name: multi-model-routing
+    d: タスク別に複数モデル(ローカル/クラウド)を使い分ける
+    tr: [ルーティング, モデル切替, auxiliary, フォールバックモデル]
+    tools: [read_file, patch]
+    opt: [terminal]
+    deps: []
+    steps:
+      - '%LOCALAPPDATA%\hermes\config.yaml の model / auxiliary 設定を確認する'
+      - '軽量タスク→Strata(:8080)、長文/高難度→クラウド、視覚→vision provider に割当'
+      - '各 provider の疎通を Invoke-RestMethod <base_url>/models で確認'
+      - '失敗時の切替順(ローカル→LM Studio→クラウド)を記録する'
+    verify: '各タスク種別で想定モデルが応答し、フォールバックが機能する'
+    fb:
+      - 'provider 不通は次順位へ自動/手動切替'
+      - 'config 変更後に不調なら直前バックアップから戻す'
+      - '複数同時ロードで VRAM 不足なら逐次ロード'
+    rel: [model-router, vision-routing, local-llm, fallback]
+    no: ['config 変更前にバックアップなしで上書きしない', '機密データをクラウドモデルへ承認なしで送らない', 'API キーを出力しない']
+    risk: medium
+  - name: skill-authoring
+    d: Hermes Skill(SKILL.md)を設計・作成する
+    tr: [スキル作成, SKILL.md, skill 追加, 手順書化]
+    tools: [write_file, read_file, skill_manage]
+    opt: [skill_view, skills_list]
+    deps: [python]
+    steps:
+      - 'skills_list で既存と重複しないか確認する'
+      - 'skills\catalog\<category>.yaml にエントリを追加(SCHEMA.md の全フィールド)'
+      - 'python scripts\kiridev_skills.py build で SKILL.md を生成する'
+      - 'skill_view で内容を確認し、実タスクで 1 回試行して手順を修正'
+    verify: 'build が成功し、skill_view で SKILL.md が表示される'
+    fb:
+      - 'build 失敗は YAML 構文(クォート・インデント)を yaml.safe_load で確認'
+      - '生成物が不足なら SKILL.md を手書きする(上書きされない)'
+      - 'python 不在は winget install Python.Python.3.12'
+    rel: [skill-evaluation, prompt-engineering, strata]
+    no: ['Secret を SKILL.md に含めない', '既存の手書き SKILL.md を承認なしで上書きしない']
+    risk: low
+  - name: skill-evaluation
+    d: Skill の発火精度と手順の有効性を検証する
+    tr: [スキル評価, 発火, trigger 検証, skill テスト]
+    tools: [read_file, terminal]
+    opt: [write_file, skill_view]
+    deps: [python]
+    steps:
+      - 'スキルの tr(Trigger)から代表依頼文を 5 件、非該当依頼を 5 件作る'
+      - '各依頼で正しい Skill が選ばれるか確認(誤発火・未発火を記録)'
+      - '手順を実際に実行し verify の条件を満たせるか確認する'
+      - 'Trigger・steps・no を修正し再試験する'
+    verify: '正例の選択率が高く負例で誤発火せず、verify を満たす'
+    fb:
+      - '誤発火が多い場合は tr を具体化し関連 Skill の rel を整理'
+      - '実行不能な手順は代替(fb)を追記'
+      - '評価環境が汚れたら新規ディレクトリで再実施'
+    rel: [skill-authoring, agent-evaluation, testing]
+    no: ['評価のために破壊的操作を実行しない']
+    risk: low
+  - name: memory-design
+    d: エージェントの記憶(短期/長期)の保存方針を設計する
+    tr: [記憶設計, memory, 長期記憶, 保存方針]
+    tools: [memory, read_file]
+    opt: [session_search, write_file]
+    deps: []
+    steps:
+      - '保存対象を「恒久の好み/プロジェクト事実/一時メモ」に分類する'
+      - '恒久事項のみ memory に 1 事実 1 エントリで保存、日付と根拠を付与'
+      - 'session_search で過去会話の再利用可否を確認し、重複保存を避ける'
+      - '古い・誤った記憶の更新/削除手順を決める'
+    verify: '保存した記憶が新規セッションで検索・参照できる'
+    fb:
+      - 'memory 不可は notes\memory.md ファイルで代替'
+      - '肥大化は context-compression で要約統合'
+      - '矛盾する記憶は新しい根拠のものを優先し旧版を更新'
+    rel: [context-compression, agent-design, session_search]
+    no: ['パスワード・トークン・個人情報を記憶に保存しない', '記憶の一括削除を承認なしで行わない']
+    risk: low
+  - name: subagent-design
+    d: サブエージェントへの分割・委任と結果統合を設計する
+    tr: [サブエージェント, 並列, delegate, 委任]
+    tools: [delegate_task, todo]
+    opt: [read_file, write_file]
+    deps: []
+    steps:
+      - '独立して実行できる自己完結タスクのみを切り出す'
+      - '各依頼に目的・対象パス・完了条件・出力形式を明記して delegate_task'
+      - '編集対象が重ならないよう担当ファイルを分ける'
+      - '戻り値を検証(実ファイル確認・テスト)してから統合する'
+    verify: '各サブタスクの成果物が実在し、統合後にテストが通る'
+    fb:
+      - '失敗したサブタスクは範囲を絞って再委任'
+      - '依存が強い場合は委任せず本体で実施'
+      - 'ローカルモデルが遅い場合は逐次実行に変更'
+    rel: [agent-design, model-router, checkpoint, verification]
+    no: ['サブエージェントに Secret を渡さない', '結果を未検証で完了扱いにしない', '破壊的操作を委任しない']
+    risk: medium
+  - name: vision-routing
+    d: 画像入力を視覚対応モデルへ振り分ける
+    tr: [視覚モデル, vision provider, 画像が読めない, auxiliary.vision]
+    tools: [read_file, patch]
+    opt: [vision_analyze, terminal]
+    deps: []
+    steps:
+      - '現在のローカルモデル(Qwen IQ3_XXS 等)が視覚非対応か確認する(mmproj の有無)'
+      - '%LOCALAPPDATA%\hermes\config.yaml の auxiliary.vision に vision 対応 provider/model を設定'
+      - 'vision_analyze に小さなテスト画像を渡し応答を確認する'
+      - '画像以外は従来のローカルモデルで処理することを確認'
+    verify: 'vision_analyze がテスト画像の内容を正しく記述する'
+    fb:
+      - 'ローカル VLM は llama-server -m <vlm.gguf> --mmproj <mmproj.gguf> で起動'
+      - 'クラウド vision が不可なら別 provider へ'
+      - 'いずれも不可なら OCR(Tesseract)で文字情報のみ抽出'
+    rel: [multi-model-routing, vision, image-analysis]
+    no: ['機密画像・個人情報を含む画像を外部 provider へ承認なしで送らない', 'API キーを出力しない']
+    risk: medium

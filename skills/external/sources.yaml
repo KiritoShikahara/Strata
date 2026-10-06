@@ -1,0 +1,48 @@
+# External skills: vendored from primary sources (verified 2026-10-07 via GitHub API: owner, license, last push, stars).
+# Update: re-clone the repo at a new commit, copy the listed paths, update `commit` and each UPSTREAM.md.
+# Priority: User instruction > KiriDev Policy > KiriDev Workflow > Capability Skill > External Skill.
+sources:
+  - spec: agent-browser
+    repo: https://github.com/vercel-labs/agent-browser
+    author: Vercel Labs
+    license: Apache-2.0
+    commit: f7c8b07
+    paths: [skills/agent-browser]
+    dependencies: ["npm i -g agent-browser && agent-browser install (Chromium download)"]
+    status: vendored (CLI not installed by default; Hermes browser_* tools are the primary browser route)
+  - spec: grill-me / Matt Pocock Skills
+    repo: https://github.com/mattpocock/skills
+    author: Matt Pocock
+    license: MIT
+    commit: 6fd9479
+    paths: [skills/productivity/grill-me, skills/productivity/grilling]
+    status: vendored (grill-me delegates to grilling). Other mattpocock skills overlap KiriDev skills (tdd, handoff, retro, research, code-review) and are not vendored to avoid name collisions.
+  - spec: skill-creator
+    repo: https://github.com/anthropics/skills
+    author: Anthropic
+    license: Apache-2.0 (skills/skill-creator/LICENSE.txt)
+    commit: 683bc88
+    paths: [skills/skill-creator]
+    status: vendored
+  - spec: Superpowers
+    repo: https://github.com/obra/superpowers
+    author: Jesse Vincent (obra)
+    license: MIT
+    commit: 8ca22db
+    paths: [skills/using-superpowers, skills/brainstorming, skills/writing-plans, skills/executing-plans,
+            skills/verification-before-completion, skills/dispatching-parallel-agents, skills/subagent-driven-development,
+            skills/using-git-worktrees, skills/finishing-a-development-branch, skills/receiving-code-review, skills/writing-skills]
+    status: vendored. Not vendored (name collides with Hermes bundled skills of the same origin) - systematic-debugging, test-driven-development, requesting-code-review.
+  - spec: Ponytail
+    repo: https://github.com/DietrichGebert/ponytail
+    author: Dietrich Gebert
+    license: MIT
+    commit: 552acd5
+    paths: [skills/ponytail, skills/ponytail-review, skills/ponytail-audit, skills/ponytail-debt]
+    status: vendored (many forks/reskins exist on GitHub - this is the original, 156k stars)
+  - spec: self-improving
+    repo: https://github.com/pskoett/self-improving-agent
+    author: pskoett
+    license: none declared
+    commit: 30478f1
+    status: NOT vendored (no license). Replaced by skills/ai/self-improving + Hermes curator / /refine.

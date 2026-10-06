@@ -1,0 +1,138 @@
+category: creative
+defaults:
+  tools: [read_file, write_file]
+  fallback: ['tool-missing: Get-Command → winget/pip で導入 → 代替ツール']
+  risk: low
+skills:
+  - name: level-design
+    d: レベル設計（動線・難易度曲線・ペーシング）
+    tr: [レベルデザイン, マップ設計, 動線, 難易度曲線, ブロックアウト]
+    tools: [read_file, write_file]
+    opt: [terminal, vision_analyze]
+    deps: []
+    steps:
+      - '目的（学習/挑戦/報酬）とプレイヤー能力・所要時間を定義する'
+      - '紙/Mermaid でトップダウン動線と戦闘・休憩・ランドマークの配置を描く'
+      - 'グレーボックス（ProBuilder / Unreal BSP）でブロックアウトし寸法を実プレイで調整する'
+      - '難易度曲線を表（区間・敵数・資源）にして CSV 管理する'
+      - 'プレイテストで迷い・詰み箇所を記録し修正する'
+    verify: '初見プレイで想定時間内に完走でき、詰み/迷い箇所の記録が解消済み'
+    fb:
+      - 'エディタが使えなければ図と表だけでレイアウト案を作る'
+      - 'ProBuilder 未導入は Package Manager で追加'
+      - '比較用に類似ゲームのレベルを research で分析する'
+    rel: [game-design, gameplay-systems, unity, unreal-engine, creative-direction]
+    no:
+      - '既存作品のマップをそのまま複製しない'
+      - '未確認のまま大規模なシーン/アセットを削除しない'
+    risk: low
+  - name: story-writing
+    d: 物語・キャラクター・台詞の執筆と構成
+    tr: [物語, シナリオ, 台詞, キャラクター設定, プロット, 小説]
+    tools: [read_file, write_file]
+    opt: [clarify, web_search]
+    deps: []
+    steps:
+      - 'ジャンル・トーン・対象読者・分量を確認し不明点は clarify で質問する'
+      - '前提（世界観・主人公の欲求と障害・結末）を 1 ページの設定書にまとめる'
+      - '三幕構成/ビート表でアウトラインを作る'
+      - '場面ごとに執筆し、キャラごとの口調差分を style guide で保つ'
+      - '一貫性（時系列・固有名詞・設定）を校閲し Markdown で保存する'
+    verify: 'アウトラインの全ビートが本文に対応し、設定矛盾リストが 0 件'
+    fb:
+      - '情報不足は複数案（短いあらすじ）を提示して選んでもらう'
+      - '長編は章ごとに分割して保存し要約で整合を保つ'
+      - '参考は research で調べるが文章は模倣しない'
+    rel: [game-design, creative-direction, level-design]
+    no:
+      - '既存作品の文章・キャラの無断流用をしない'
+      - '作品の外部公開・投稿・送信は承認なしで行わない'
+    risk: low
+  - name: creative-direction
+    d: ビジュアル/世界観の方向性決定とスタイルガイド作成
+    tr: [世界観, アートディレクション, スタイルガイド, ムードボード, コンセプト]
+    tools: [read_file, write_file]
+    opt: [web_search, vision_analyze, image_generate]
+    deps: []
+    steps:
+      - '目的・ターゲット・感情的ゴールを 3 つのキーワードに絞る'
+      - '参照資料を収集し、色・形・質感・光の方針を言語化する'
+      - 'カラーパレット（HEX）・フォント・シルエット規則を docs\style-guide.md に定義する'
+      - '代表シーン 1–2 枚（image_generate またはラフ）で方向性を検証する'
+      - '採用/不採用の理由を記録し制作側へ共有可能な形にする'
+    verify: 'スタイルガイドにパレット・禁止事項・参照例があり、代表画像が方針と一致している'
+    fb:
+      - '画像生成が使えなければ参照画像とテキスト記述でガイド化'
+      - 'ライセンス不明の参照は構造のみ抽出して使う'
+      - '選択に迷えば 2–3 案を比較表で提示する'
+    rel: [asset-generation, game-design, story-writing, 3d-pipeline]
+    no:
+      - '特定作家/IP の模倣・無断流用をしない'
+      - '外部サービスへの機密企画資料のアップロードや課金は承認なしで行わない'
+    risk: low
+  - name: asset-generation
+    d: 画像/音声などアセットの生成・変換・命名管理
+    tr: [画像生成, アセット生成, テクスチャ生成, 音声合成, アイコン作成]
+    tools: [image_generate, terminal, write_file]
+    opt: [vision_analyze, text_to_speech, read_file]
+    deps: [ffmpeg, ImageMagick]
+    steps:
+      - '用途・解像度・形式・透過有無・スタイルガイドを確認する'
+      - 'プロンプトに主題・スタイル・構図・禁止要素を書き image_generate で複数候補を生成する'
+      - 'vision_analyze で破綻（手/文字/タイリング）を検査し選別する'
+      - '後処理: magick in.png -resize 1024x1024 out.png、音声は ffmpeg -i で変換する'
+      - '命名規則（type_name_v01.png）で別フォルダへ保存し出典とプロンプトを記録する'
+    verify: '指定の解像度/形式で出力され、vision_analyze 検査で破綻が無く出典メモがある'
+    fb:
+      - '生成不可なら既存素材の加工（ImageMagick）や手描きプレースホルダを作る'
+      - 'winget install ImageMagick.ImageMagick / Gyan.FFmpeg で導入'
+      - 'ライセンス確認済みの CC0 素材を research で探す'
+    rel: [creative-direction, 3d-pipeline, blender-assist, asset-pipeline]
+    no:
+      - '実在人物の肖像・著作物の無断再現を生成しない'
+      - '有償 API の大量生成（課金）や生成物の外部公開は承認なしで行わない'
+    risk: medium
+  - name: 3d-pipeline
+    d: 3D 制作パイプライン（モデリング〜エンジン組込）設計
+    tr: [3D パイプライン, モデリング, リトポ, UV, ベイク, glTF, FBX]
+    tools: [terminal, read_file, write_file]
+    opt: [vision_analyze]
+    deps: [blender]
+    steps:
+      - '工程を決める: ブロックアウト → ハイポリ → リトポ → UV → ベイク → テクスチャ → リグ → 書き出し'
+      - 'スケール（1 unit=1m）・軸・命名・トライ予算を文書化する'
+      - 'UV は重なり無し・テクセル密度統一、法線/AO/曲率をベイクする'
+      - 'blender -b model.blend -P export.py で FBX/glTF を一括書き出しする'
+      - 'Unity/Unreal へインポートしスケール・マテリアル・LOD を確認する'
+    verify: 'エンジン上で実寸・法線・マテリアルが正しく、トライ数が予算内'
+    fb:
+      - 'winget install BlenderFoundation.Blender で導入'
+      - 'FBX 不具合は glTF/USD に切替'
+      - '自動化不可なら手順書付きで手動書き出しする'
+    rel: [blender-assist, asset-pipeline, asset-generation, unity, unreal-engine]
+    no:
+      - 'ソース .blend を上書き/削除しない（出力は別ディレクトリ）'
+      - 'ライセンス不明のモデルを同梱しない。有償アセット購入は承認が必要'
+    risk: low
+  - name: blender-assist
+    d: Blender のスクリプト・バッチ処理・レンダ支援
+    tr: [Blender, bpy, レンダリング, モディファイア, blender -b]
+    tools: [terminal, write_file, read_file]
+    opt: [vision_analyze]
+    deps: [blender]
+    steps:
+      - 'Get-Command blender か既定パス（C:\Program Files\Blender Foundation\）を確認し blender --version を実行する'
+      - 'bpy スクリプトを作成し blender -b scene.blend -P script.py -- <args> でヘッドレス実行する'
+      - 'レンダは blender -b scene.blend -o //out\frame_#### -F PNG -f 1（または -a）で出力する'
+      - 'モディファイア/マテリアル操作は bpy.data を読み、変更前に別名保存（bpy.ops.wm.save_as_mainfile(copy=True)）する'
+      - '出力画像を vision_analyze で確認し、設定（サンプル数/解像度）を調整する'
+    verify: 'スクリプトが終了コード 0 で完了し、出力ファイルが期待した内容で生成されている'
+    fb:
+      - 'winget install BlenderFoundation.Blender で導入、または portable zip を展開'
+      - 'GPU レンダ不可は --cycles-device CPU に切替'
+      - 'bpy 不可は pip install bpy（Python 版）か GUI 手順を案内'
+    rel: [3d-pipeline, asset-generation, asset-pipeline]
+    no:
+      - '元 .blend の無断上書き・大量レンダ出力の既存ファイル削除をしない'
+      - '未確認の外部アドオン/スクリプトを実行しない'
+    risk: low

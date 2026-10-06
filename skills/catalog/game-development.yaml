@@ -1,0 +1,336 @@
+category: game-development
+defaults:
+  tools: [terminal]
+  fallback: ['tool-missing: Get-Command → winget/Epic Games Launcher/Unity Hub で導入 → 代替ツール']
+  risk: low
+skills:
+  - name: unity
+    d: Unity プロジェクトの構成・C# スクリプト・シーン開発
+    tr: [Unity, C#, MonoBehaviour, Prefab, シーン, ScriptableObject]
+    tools: [terminal, read_file, write_file, patch]
+    opt: [search_files]
+    deps: [Unity Hub, dotnet]
+    steps:
+      - 'ProjectSettings\ProjectVersion.txt で Unity バージョンを確認し、Unity Hub で同一版が入っているか見る'
+      - 'Assets\ 配下の構成（Scripts/Prefabs/Scenes）と Packages\manifest.json を把握する'
+      - 'MonoBehaviour/ScriptableObject を作成。.meta ファイルを必ず対で扱い、Library\ は触らない'
+      - 'Unity Editor はネイティブ Windows で起動し、Console の警告/エラーを確認する'
+      - 'Edit/Play Mode テスト（Test Runner）で挙動を確認する'
+    verify: 'Editor の Console にコンパイルエラーが無く、Test Runner の全テストが通る'
+    fb:
+      - 'Unity Hub 未導入なら winget install Unity.UnityHub'
+      - 'コンパイルエラーは Library\ と Temp\ 削除後に再インポート（確認の上）'
+      - 'GUI が使えなければ unity-cli のバッチモードで実行する'
+    rel: [unity-editor, unity-cli, unity-profiling, gameplay-systems, git]
+    no:
+      - 'Unity Editor を Docker 内で動かさない（ネイティブ Windows 限定）'
+      - '.meta の手動削除・Assets 大量削除は承認なしで行わない'
+    risk: medium
+  - name: unity-editor
+    d: Unity Editor 拡張・Inspector/メニュー/ツール作成
+    tr: [Editor 拡張, EditorWindow, CustomEditor, MenuItem, Unity ツール]
+    tools: [read_file, write_file, patch]
+    opt: [terminal]
+    deps: [Unity Hub]
+    steps:
+      - 'Assets\Editor\ フォルダに Editor 専用スクリプトを置く（ランタイムと asmdef で分離）'
+      - '[MenuItem("Tools/...")] か EditorWindow、[CustomEditor(typeof(X))] で UI を実装する'
+      - 'UI Toolkit か IMGUI を選び、SerializedObject/Undo.RecordObject で Undo 対応にする'
+      - '変更後はドメインリロードを待ち Console を確認して動作テストする'
+      - 'ビルド対象に UnityEditor 参照が混入していないか確認する'
+    verify: 'Editor でメニュー/ウィンドウが表示され動作し、プレイヤービルドが通る'
+    fb:
+      - 'asmdef の Editor プラットフォーム設定を見直す'
+      - '#if UNITY_EDITOR で囲んでビルド混入を防ぐ'
+      - 'ドメインリロード不具合は Editor 再起動で切り分ける'
+    rel: [unity, unity-cli, asset-pipeline]
+    no:
+      - 'Editor 拡張でプロジェクト全体の資産を確認なしで一括書き換え/削除しない'
+      - 'Unity Editor を Docker で実行しない'
+    risk: medium
+  - name: unity-cli
+    d: Unity のバッチモード実行・CLI ビルド・テスト
+    tr: [Unity batchmode, -executeMethod, Unity ビルド, CLI ビルド, CI]
+    tools: [terminal, read_file]
+    opt: [write_file]
+    deps: [Unity.exe]
+    steps:
+      - 'Editor パスを特定: Get-ChildItem "C:\Program Files\Unity\Hub\Editor" で版を確認する'
+      - 'エディタを閉じてから: & "<Unity.exe>" -batchmode -nographics -quit -projectPath . -logFile build.log -executeMethod Build.Run'
+      - 'テストは -runTests -testPlatform EditMode -testResults results.xml を使う'
+      - '終了コードと build.log の "error CS" を Select-String で確認する'
+      - 'ライセンスエラー時は Unity Hub 側でライセンスを有効化する'
+    verify: '$LASTEXITCODE が 0 で results.xml に失敗が無く、成果物が出力先に存在する'
+    fb:
+      - '同一プロジェクトが開かれて失敗する場合は Editor を閉じる/別コピーで実行'
+      - 'ライセンス未取得は Unity Hub でサインインを促す（ユーザー操作）'
+      - 'CLI が不可なら Editor の Build Settings から手動ビルド'
+    rel: [unity, unity-editor, build-systems, testing]
+    no:
+      - 'Docker で Unity Editor を実行しない（ネイティブ限定）'
+      - 'ライセンスキー/認証情報をログや外部に出力しない'
+    risk: medium
+  - name: unity-profiling
+    d: Unity Profiler/Memory Profiler による性能調査
+    tr: [Unity Profiler, フレームレート, GC, Memory Profiler, スパイク]
+    tools: [terminal, read_file]
+    opt: [vision_analyze, computer_use]
+    deps: [Unity Hub]
+    steps:
+      - '対象ビルドを Development Build + Autoconnect Profiler で起動、または Editor で Play する'
+      - 'Window > Analysis > Profiler で CPU/GPU/Rendering/Memory の重いフレームを特定する'
+      - 'GC.Alloc 列と Deep Profile で割り当て元を特定、Frame Debugger で描画コールを確認する'
+      - 'Profile Analyzer / Memory Profiler パッケージでスナップショット比較する'
+      - '修正後に同一シーンで再計測し ms と GC を比較記録する'
+    verify: '修正前後のフレーム時間と GC.Alloc を比較し目標（例 16.6ms）を満たす'
+    fb:
+      - 'Editor 計測が不安定ならスタンドアロンの Development Build で計測'
+      - 'パッケージ無しなら Package Manager で com.unity.memoryprofiler を追加'
+      - 'GUI 操作が困難なら -profiler-log-file オプションでログ取得'
+    rel: [unity, profiling-performance, game-debugging]
+    no:
+      - 'Editor での計測値だけで最適化を確定しない'
+      - 'Docker 内の Unity で計測しない'
+    risk: low
+  - name: unreal-engine
+    d: Unreal Engine プロジェクト全般の構成・運用
+    tr: [Unreal, UE5, .uproject, Unreal Editor, レベル, アセット]
+    tools: [terminal, read_file, search_files]
+    opt: [write_file, patch]
+    deps: [Epic Games Launcher, UnrealEditor]
+    steps:
+      - '*.uproject の EngineAssociation で UE バージョンを確認する'
+      - 'Source\ / Content\ / Config\*.ini / Plugins\ の構成を把握する'
+      - 'Generate Visual Studio project files（右クリックまたは UnrealBuildTool）でソリューションを生成する'
+      - 'Editor はネイティブで起動し、Output Log と Message Log を確認する'
+      - 'Saved\Logs\*.log を Select-String "Error|Warning" で確認する'
+    verify: 'Editor が起動しプロジェクトが開け、Saved\Logs に致命的 Error が無い'
+    fb:
+      - 'Epic Games Launcher を winget install EpicGames.EpicGamesLauncher で導入'
+      - '破損時は Binaries\ Intermediate\ Saved\ を削除し再生成（確認の上）'
+      - 'コマンドライン経由は unreal-build-tool を使う'
+    rel: [unreal-cpp, unreal-blueprint, unreal-build-tool, gameplay-systems, git]
+    no:
+      - 'Unreal Editor を Docker 内で動かさない（ネイティブ Windows 限定）'
+      - 'Content\ の .uasset を無断で削除/バイナリ編集しない'
+    risk: medium
+  - name: unreal-cpp
+    d: Unreal C++（UCLASS/UPROPERTY/Actor/Component）実装
+    tr: [Unreal C++, UCLASS, UPROPERTY, UFUNCTION, AActor, GameMode]
+    tools: [terminal, read_file, write_file, patch]
+    opt: [search_files]
+    deps: [Visual Studio 2022, UnrealBuildTool]
+    steps:
+      - 'Source\<Module>\ のクラス構成と <Module>.Build.cs の依存モジュールを確認する'
+      - 'UCLASS/USTRUCT に GENERATED_BODY() を付け、UPROPERTY/UFUNCTION で Blueprint 公開を設計する'
+      - 'ヘッダ追加・マクロ変更時は Editor を閉じてビルドする（Live Coding は関数本体の変更のみ）'
+      - 'UPROPERTY なしの UObject 生ポインタを避け TObjectPtr/TWeakObjectPtr を使う'
+      - 'ビルドエラーは最初の error から修正し unreal-build-tool で再ビルドする'
+    verify: 'Development Editor 構成のビルドが成功し、Editor で新クラスが Blueprint から使える'
+    fb:
+      - 'VS の「C++ によるゲーム開発」ワークロードを Installer で追加'
+      - 'Intermediate\ 削除後に再生成して再ビルド'
+      - '挙動確認は Blueprint で暫定実装して切り分ける'
+    rel: [unreal-engine, unreal-blueprint, unreal-build-tool, game-debugging]
+    no:
+      - 'Docker/WSL 内で Unreal Editor を動かさない'
+      - 'エンジン本体ソースの無断改変をしない'
+    risk: medium
+  - name: unreal-blueprint
+    d: Unreal Blueprint の設計・整理・C++ との連携
+    tr: [Blueprint, ブループリント, BP, イベントグラフ, UMG]
+    tools: [read_file, computer_use]
+    opt: [vision_analyze, terminal]
+    deps: [UnrealEditor]
+    steps:
+      - 'Content Browser で対象 BP を特定し Reference Viewer で依存関係を確認する'
+      - '親クラスを決め、ロジックは関数/マクロに分割しイベントグラフを小さく保つ'
+      - '共通処理は BlueprintCallable な C++ 関数や Blueprint Function Library に移す'
+      - 'Compile 後に PIE で実行し Print String/ブレークポイントで確認する'
+      - '不要ノードを整理し Message Log の警告を 0 にする'
+    verify: 'BP がコンパイル警告/エラー無しで PIE 動作し、Reference Viewer に壊れた参照が無い'
+    fb:
+      - 'GUI 操作が困難なら Python（Editor Scripting）で資産を調べる'
+      - 'ノードが多い場合は C++ へ移行（unreal-cpp）'
+      - '壊れた BP は Source Control の前版へ戻す'
+    rel: [unreal-engine, unreal-cpp, gameplay-systems, game-debugging]
+    no:
+      - 'BP の一括置換/削除/リダイレクタ修正を承認なしで行わない'
+      - 'Docker で Editor を動かさない'
+    risk: medium
+  - name: unreal-build-tool
+    d: UnrealBuildTool/UAT による C++ ビルドとパッケージ化
+    tr: [UnrealBuildTool, UBT, UAT, RunUAT, BuildCookRun, Build.cs]
+    tools: [terminal, read_file]
+    opt: [patch]
+    deps: [UnrealBuildTool, RunUAT.bat]
+    steps:
+      - 'エンジンパスを確認（例 C:\Program Files\Epic Games\UE_5.x\Engine）'
+      - 'ビルド: & "<Engine>\Build\BatchFiles\Build.bat" <Target>Editor Win64 Development -Project="<path>.uproject" -WaitMutex'
+      - 'パッケージ: RunUAT.bat BuildCookRun -project=... -platform=Win64 -clientconfig=Shipping -build -cook -stage -pak -archive -archivedirectory=Out'
+      - 'ログ（%LOCALAPPDATA%\UnrealBuildTool\Log.txt）の最初の error を確認する'
+      - '.Build.cs / .Target.cs の依存を修正して再ビルドする'
+    verify: 'Build.bat/RunUAT の終了コード 0 で、Binaries\Win64 またはアーカイブ先に成果物がある'
+    fb:
+      - 'Epic Games Launcher で VS ツールチェーン要件を満たす版を導入'
+      - 'Intermediate\ を削除して再ビルド（確認の上）'
+      - 'Editor 内の Platforms > Package Project で手動パッケージ'
+    rel: [unreal-engine, unreal-cpp, build-systems, package-release]
+    no:
+      - 'ストア/Steam 等への公開・アップロードは承認なしで行わない'
+      - 'Docker 内で Editor/UAT cook を実行しない'
+    risk: medium
+  - name: gameplay-systems
+    d: 移動・戦闘・インベントリ等のゲームプレイ機構実装
+    tr: [ゲームプレイ, キャラクター移動, 戦闘システム, インベントリ, ステート]
+    tools: [read_file, write_file, patch, terminal]
+    opt: [search_files]
+    deps: []
+    steps:
+      - '機能を入力→状態→結果の流れで定義し、データ（SO/DataAsset/DataTable）と処理を分離する'
+      - 'ステートマシン/コンポーネント設計で責務を分け、イベント駆動で結合を減らす'
+      - '数値バランスは外部データ（JSON/CSV/DataTable）に出し、コードに埋め込まない'
+      - 'フレームレート非依存（Time.deltaTime / DeltaSeconds）で実装する'
+      - '単体/PlayMode テストと Editor での手動プレイで確認する'
+    verify: '想定入力のテスト（境界・連打・同時入力）が通り、フレームレート変更でも挙動が一定'
+    fb:
+      - 'エンジン組込み機能（CharacterController/CharacterMovementComponent）を先に検討'
+      - '複雑なら最小の縦切りプロトタイプで検証する'
+      - '問題は game-debugging の手順で切り分ける'
+    rel: [unity, unreal-engine, game-ai, game-design, game-debugging]
+    no:
+      - '数値や挙動を根拠なくハードコードしない'
+      - 'セーブデータ形式変更時に既存データを無断で破棄しない'
+    risk: low
+  - name: game-ai
+    d: ゲーム AI（経路探索・ビヘイビアツリー・ステートマシン）
+    tr: [ゲーム AI, NavMesh, ビヘイビアツリー, A*, 敵 AI, 経路探索]
+    tools: [read_file, write_file, patch, terminal]
+    opt: [search_files]
+    deps: []
+    steps:
+      - '求める挙動をスキル/状態/条件の表に整理する'
+      - '単純なら FSM、分岐が多ければ Behavior Tree/Utility AI を選ぶ（Unreal: BT+Blackboard+EQS）'
+      - 'NavMesh（Unity NavMeshSurface / Unreal NavMeshBoundsVolume）をベイクして経路を確認する'
+      - '知覚（視界・聴覚）と意思決定の更新頻度を分け、重い処理は間引く'
+      - 'デバッグ描画（Gizmos/Visual Logger）で状態遷移を可視化し調整する'
+    verify: 'AI が想定シナリオで目標に到達し、100 体同時でもフレーム時間が予算内'
+    fb:
+      - '既存パッケージ（Behavior Designer 等）の導入を検討（ライセンス確認）'
+      - 'NavMesh が使えなければグリッド A* を自前実装'
+      - '挙動不良は game-debugging で状態ログを取る'
+    rel: [gameplay-systems, unity, unreal-engine, game-debugging]
+    no:
+      - '有償アセットの購入は承認なしで行わない'
+      - 'フレーム毎の全体探索など未計測の重い処理を入れない'
+    risk: low
+  - name: game-networking
+    d: マルチプレイ同期・ネットコード設計と検証
+    tr: [マルチプレイ, ネットワーク, レプリケーション, Netcode, Mirror, ラグ補償]
+    tools: [terminal, read_file, write_file, patch]
+    opt: [search_files]
+    deps: []
+    steps:
+      - 'サーバー権威/ P2P/ リッスンサーバーを決め、同期対象状態と頻度を表にする'
+      - 'Unity は Netcode for GameObjects/Mirror、Unreal は Replication（UPROPERTY(Replicated)/RPC）を使う'
+      - 'クライアント予測・補間・サーバー再調整で遅延を隠蔽する'
+      - 'Clumsy / Unreal の Net PktLag/PktLoss で遅延・ロスを再現してテストする'
+      - 'ローカル複数クライアント（-nographics ヘッドレスサーバー）で検証する'
+    verify: '遅延 100–200ms・ロス 5% 下でも状態が収束し不正入力がサーバーで拒否される'
+    fb:
+      - 'ネットライブラリ不調時は別実装（Mirror/FishNet 等）で最小例を比較'
+      - 'ファイアウォールは受信規則の確認を提案（設定変更は承認後）'
+      - 'ローカルループバックで再現して切り分ける'
+    rel: [gameplay-systems, unity, unreal-engine, game-debugging]
+    no:
+      - 'クライアントを信用する設計（権威を持たせる）にしない'
+      - 'ファイアウォール/ポート開放などの重要設定を承認なしで変更しない'
+    risk: medium
+  - name: game-design
+    d: ゲームデザイン文書・コアループ・バランス設計
+    tr: [ゲームデザイン, コアループ, GDD, バランス調整, 企画]
+    tools: [read_file, write_file]
+    opt: [web_search, clarify]
+    deps: []
+    steps:
+      - '1 文のコンセプトとターゲット体験・プレイ時間を定義する'
+      - 'コアループ（行動→報酬→成長）とメタループを図示する'
+      - '主要メカニクスと数値（経済・難易度曲線）を表にし CSV で管理する'
+      - '最小プレイアブル範囲（MVP）を切り出し検証項目を決める'
+      - 'docs\GDD.md にまとめ、プレイテスト結果で更新する'
+    verify: 'GDD にコアループ・数値表・MVP 範囲があり、プレイテスト項目が定義されている'
+    fb:
+      - '情報不足は clarify で質問、または前提置きで進める'
+      - '類似作品を research で分析して参考にする'
+      - '文書が重い場合は 1 ページのデザインピラーに縮約する'
+    rel: [gameplay-systems, level-design, story-writing, research]
+    no:
+      - '既存作品の素材・文章をそのまま流用しない（著作権）'
+      - '外部への企画資料の送信・公開は承認なしで行わない'
+    risk: low
+  - name: game-debugging
+    d: ゲーム固有の不具合調査（再現・ログ・クラッシュ解析）
+    tr: [ゲームのバグ, クラッシュ, 挙動がおかしい, Unity エラー, Unreal クラッシュ]
+    tools: [terminal, read_file, search_files]
+    opt: [vision_analyze, patch]
+    deps: []
+    steps:
+      - 'Reproduce: 手順・シーン/レベル・シード・入力を固定し毎回再現させる'
+      - 'Collect evidence: Unity は %USERPROFILE%\AppData\Local\Unity\Editor\Editor.log、Unreal は Saved\Logs と Saved\Crashes を収集する'
+      - 'Hypotheses→Measure: 仮説ごとにログ/Gizmos/ブレークポイント/Profiler で実測し、推測で直さない'
+      - 'Root cause を特定し最小修正を入れる'
+      - 'Regression test（PlayMode/Automation Test）を追加し元手順で Verify する'
+    verify: '元の再現手順で再発せず、追加した回帰テストが通る'
+    fb:
+      - 'Visual Studio/Rider のデバッガをアタッチして実行状態を確認'
+      - 'バージョン管理で git bisect し原因コミットを特定'
+      - '再現不能なら計装ログを追加して再収集する'
+    rel: [debugging, unity-profiling, unreal-cpp, testing]
+    no:
+      - '根拠のない修正や警告抑制だけで終えない'
+      - 'クラッシュダンプ/ログを承認なしで外部送信しない'
+    risk: low
+  - name: shader-hlsl
+    d: HLSL シェーダーの作成・最適化・デバッグ
+    tr: [HLSL, シェーダー, Shader Graph, マテリアル, GPU, ピクセルシェーダー]
+    tools: [read_file, write_file, patch]
+    opt: [terminal, vision_analyze]
+    deps: [dxc, RenderDoc]
+    steps:
+      - '対象パイプライン（Unity URP/HDRP、Unreal Material/Global Shader）を確認する'
+      - 'HLSL を書き、構文検証は dxc -T ps_6_0 -E main shader.hlsl で行う'
+      - 'RenderDoc でフレームキャプチャし入出力テクスチャと定数を確認する'
+      - 'ALU/テクスチャフェッチ・分岐を減らし、精度（half/float）を見直す'
+      - '対象 GPU/品質設定で見た目とコストを確認する'
+    verify: 'dxc がエラー 0 でコンパイルし、実機/Editor で期待の見た目、GPU 時間が予算内'
+    fb:
+      - 'winget install LunarG.VulkanSDK 等で dxc を導入、または Windows SDK 同梱の fxc/dxc を使う'
+      - 'RenderDoc 未導入は winget install BaldurKarlsson.RenderDoc'
+      - '難しければ Shader Graph/Material Editor で暫定実装'
+    rel: [unity, unreal-engine, asset-pipeline, game-debugging]
+    no:
+      - '未検証の巨大ループ/分岐を本番シェーダーに入れない'
+      - 'GPU ドライバの更新など重要システム設定を承認なしで変更しない'
+    risk: low
+  - name: asset-pipeline
+    d: テクスチャ・モデル・音声のインポート/最適化パイプライン
+    tr: [アセット, インポート設定, FBX, テクスチャ圧縮, LOD, パイプライン]
+    tools: [terminal, read_file, write_file]
+    opt: [search_files]
+    deps: [ffmpeg, ImageMagick]
+    steps:
+      - '命名規則とフォルダ構成（Art\Source と Assets\Art）を決めソースを分離管理する'
+      - 'FBX/glTF のスケール・軸・単位とテクスチャ解像度（2 の累乗）を統一する'
+      - '画像は magick mogrify、音声は ffmpeg -i in.wav -c:a libvorbis out.ogg で変換する'
+      - 'Unity は Import Settings/Preset、Unreal は Import 設定とテクスチャグループで圧縮・LOD を設定する'
+      - '大容量バイナリは Git LFS（git lfs track "*.psd"）で管理しサイズレポートを出す'
+    verify: 'Get-ChildItem でサイズ予算内であり、Editor で警告なくインポートされ見た目が正しい'
+    fb:
+      - 'winget install Gyan.FFmpeg / ImageMagick.ImageMagick で導入'
+      - 'Blender CLI（blender -b -P script.py）で一括変換'
+      - 'バッチ失敗分は個別に Editor で再インポート'
+    rel: [unity, unreal-engine, blender-assist, 3d-pipeline, git]
+    no:
+      - 'ソース素材を上書き/削除しない（変換は別ディレクトリに出力）'
+      - '著作権・ライセンス不明の素材を同梱しない'
+    risk: low

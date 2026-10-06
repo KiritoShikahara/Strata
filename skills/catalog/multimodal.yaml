@@ -1,0 +1,272 @@
+category: multimodal
+defaults:
+  tools: [vision_analyze]
+  risk: low
+skills:
+  - name: vision
+    d: 画像の内容を視覚モデルで認識・説明する
+    tr: [画像を見て, 画像認識, この画像, vision]
+    tools: [vision_analyze]
+    opt: [read_file, terminal]
+    deps: []
+    steps:
+      - '画像パスの存在とサイズを確認: Get-Item <path> | Select Length'
+      - 'vision_analyze に画像と具体的な質問(何を知りたいか)を渡す'
+      - '結果の不確かな箇所は切り抜き・拡大して再解析する'
+      - '観察事実と推測を分けて回答する'
+    verify: '回答が画像内の具体的要素(文字・物体・位置)を参照している'
+    fb:
+      - 'ローカルモデルが非視覚なら vision-routing で vision provider へ'
+      - '巨大画像は Pillow で縮小(1568px 以下)して再投入'
+      - '不可なら OCR(tesseract)で文字のみ抽出'
+    rel: [image-analysis, vision-routing, screenshot-analysis]
+    no: ['機密画像を外部 provider へ承認なしで送らない', '画像内の人物を特定しない']
+    risk: low
+  - name: image-analysis
+    d: 画像の詳細分析(OCR・属性・差分・メタデータ)
+    tr: [画像分析, OCR, EXIF, 画像比較]
+    tools: [vision_analyze, terminal]
+    opt: [execute_code]
+    deps: [python, Pillow, tesseract]
+    steps:
+      - 'メタデータ確認: python -c "from PIL import Image;im=Image.open(r\"<p>\");print(im.size,im.mode,im.getexif())"'
+      - 'vision_analyze で全体説明、領域指定の質問で詳細を取得'
+      - '文字は tesseract <img> stdout -l jpn+eng で OCR し視覚結果と照合'
+      - '差分は ImageChops.difference で比較し変化領域を報告'
+    verify: 'OCR 文字列と視覚解析が整合し、数値・サイズが実測値と一致'
+    fb:
+      - 'tesseract 不在は winget install UB-Mannheim.TesseractOCR'
+      - 'Pillow 不在は pip install pillow'
+      - 'OCR 精度不足は二値化・拡大前処理か vision_analyze に任せる'
+    rel: [vision, screenshot-analysis, diagram-analysis]
+    no: ['EXIF の位置情報等を外部へ送らない', '個人を特定する分析をしない']
+    risk: low
+  - name: image-generation
+    d: テキストから画像を生成する
+    tr: [画像生成, 絵を描いて, image generate, イラスト]
+    tools: [image_generate]
+    opt: [write_file, terminal]
+    deps: []
+    steps:
+      - '用途・構図・スタイル・サイズ・禁止要素を整理したプロンプトを作る'
+      - 'image_generate を実行し出力を outputs\images\ に保存'
+      - 'vision_analyze で意図との一致を確認し、プロンプトを修正して再生成'
+      - '採用画像のプロンプト・日時を横にメモとして記録'
+    verify: '保存画像が存在し、要件(内容・サイズ)を満たす'
+    fb:
+      - '生成 provider 不可は別 provider/モデルへ切替'
+      - 'ローカル生成は ComfyUI/Stable Diffusion WebUI(要 GPU)を利用'
+      - '不可なら SVG/Pillow で図を手続き生成'
+    rel: [image-editing, ui-ux-generation, vision]
+    no: ['実在人物・著作物の模倣や偽画像を生成しない', '有料 API の大量生成を承認なしで行わない']
+    risk: medium
+  - name: image-editing
+    d: 画像のリサイズ・切抜き・変換・注釈を行う
+    tr: [画像編集, リサイズ, トリミング, 変換, 透過]
+    tools: [terminal]
+    opt: [vision_analyze, execute_code]
+    deps: [magick, Pillow]
+    steps:
+      - '元画像を別名コピーし編集は複製に対して行う'
+      - 'magick <in> -resize 1280x -quality 85 <out> や Pillow の crop/resize/convert で加工'
+      - '注釈は ImageDraw か magick -draw/-annotate で追加する'
+      - '出力を vision_analyze と Get-Item で確認する'
+    verify: '出力の寸法・形式が指定どおりで、元ファイルは無変更'
+    fb:
+      - 'magick 不在は winget install ImageMagick.ImageMagick'
+      - 'ImageMagick 不可は pip install pillow で代替'
+      - 'GUI 要件は Paint.NET/GIMP を winget 導入して案内'
+    rel: [image-analysis, image-generation, filesystem]
+    no: ['元画像を上書きしない', '画像の偽造・改ざん目的の加工をしない']
+    risk: low
+  - name: diagram-analysis
+    d: 図・フローチャート・ER 図を読み取り構造化する
+    tr: [図の解析, フローチャート, 構成図, ER図, 図を読んで]
+    tools: [vision_analyze]
+    opt: [write_file, terminal]
+    deps: []
+    steps:
+      - 'vision_analyze で図の種類・ノード・矢印・ラベルを列挙させる'
+      - '細部は領域を切り抜いて再解析し、ノード間の接続を確認する'
+      - 'Mermaid(flowchart/erDiagram)に書き起こし mmdc -i in.mmd -o out.png で再描画'
+      - '元図と再描画を vision_analyze で比較し差異を修正する'
+    verify: '再描画した図のノード数・接続が元図と一致する'
+    fb:
+      - 'mmdc 不在は npm i -g @mermaid-js/mermaid-cli、または Mermaid Live の構文確認のみ'
+      - '読取不能なラベルは「判読不能」と明記'
+      - '文字が小さい場合は拡大して OCR(tesseract)併用'
+    rel: [image-analysis, vision, screenshot-analysis]
+    no: ['判読できない要素を推測で補完しない']
+    risk: low
+  - name: screenshot-analysis
+    d: スクリーンショットから UI 状態・エラーを読み取る
+    tr: [スクリーンショット, スクショ, エラー画面, 画面を見て]
+    tools: [vision_analyze]
+    opt: [computer_use, terminal, browser_vision]
+    deps: []
+    steps:
+      - '取得: Add-Type System.Windows.Forms でキャプチャ、または Win+Shift+S の保存画像のパスを受け取る'
+      - 'vision_analyze でウィンドウ・ダイアログ・エラー文言・ボタンを抽出'
+      - 'エラー文は原文のまま書き出し、検索・デバッグ(debugging)に引き継ぐ'
+      - '画面の現在状態と次の操作候補を整理する'
+    verify: 'エラー文言・画面状態が原文どおり転記され、画像と一致する'
+    fb:
+      - '文字が小さい場合は切り抜き拡大か OCR(tesseract)併用'
+      - 'ブラウザ画面は browser_snapshot のテキスト取得を優先'
+      - '非視覚モデルは vision-routing で振り分け'
+    rel: [vision, ui-ux-analysis, debugging]
+    no: ['画面内のパスワード・トークン・個人情報を転記・送信しない', '許可なく常時スクリーンキャプチャしない']
+    risk: low
+  - name: ui-ux-analysis
+    d: UI/UX の課題をヒューリスティックに分析・改善提案する
+    tr: [UI分析, UX改善, 画面レビュー, アクセシビリティ]
+    tools: [vision_analyze, browser_snapshot]
+    opt: [browser_navigate, browser_vision, terminal]
+    deps: [lighthouse]
+    steps:
+      - '対象画面のスクショまたは URL を取得し vision_analyze で構成を把握'
+      - 'Nielsen ヒューリスティック 10 項目と視覚階層・余白・コントラスト比(WCAG 4.5:1)で評価'
+      - 'Web なら npx lighthouse <url> --only-categories=accessibility で自動検査'
+      - '課題を重大度・根拠(画像箇所)・改善案の表にまとめる'
+    verify: '各課題に重大度・画面箇所・具体的改善案が付いている'
+    fb:
+      - 'lighthouse 不可は browser_snapshot のアクセシビリティツリーで確認'
+      - 'ブラウザ不可はスクショのみで視覚評価'
+      - 'Node 不在は winget install OpenJS.NodeJS.LTS'
+    rel: [ui-ux-generation, screenshot-analysis, browser-automation]
+    no: ['他者サイトへ負荷をかけるスキャンをしない']
+    risk: low
+  - name: ui-ux-generation
+    d: UI のワイヤー・モック・HTML/CSS 実装を生成する
+    tr: [UI作成, ワイヤーフレーム, モック, 画面デザイン, HTML/CSS]
+    tools: [write_file, read_file]
+    opt: [browser_navigate, vision_analyze, image_generate]
+    deps: [node]
+    steps:
+      - '目的・ユーザー・主要画面・制約(ブランド色/レスポンシブ)を整理する'
+      - '構造を Mermaid か ASCII ワイヤーで示し、合意後 HTML/CSS(または既存フレームワーク)で実装'
+      - 'file:///<path>/index.html を browser_navigate で開き、スクショを vision_analyze で確認'
+      - 'ui-ux-analysis の基準(コントラスト・タップ領域)で修正する'
+    verify: 'ブラウザで崩れず表示され、主要画面が要件どおり揃っている'
+    fb:
+      - '既存プロジェクトがあればそのフレームワーク・デザイントークンに合わせる'
+      - 'ブラウザ確認不可は HTML 検証(npx html-validate)'
+      - '画像素材が必要なら image-generation か SVG で代替'
+    rel: [ui-ux-analysis, image-generation, testing]
+    no: ['既存ファイルを承認なしで大量上書きしない', '外部 CDN の未検証スクリプトを埋め込まない']
+    risk: low
+  - name: audio-analysis
+    d: 音声ファイルの特徴・内容・メタ情報を解析する
+    tr: [音声解析, 音声ファイル, ffprobe, 波形, 無音検出]
+    tools: [terminal]
+    opt: [execute_code]
+    deps: [ffmpeg, ffprobe]
+    steps:
+      - 'ffprobe -v error -show_format -show_streams <audio> でコーデック・長さ・サンプルレート確認'
+      - '音量: ffmpeg -i <f> -af volumedetect -f null NUL'
+      - '無音区間: ffmpeg -i <f> -af silencedetect=n=-30dB:d=0.5 -f null NUL'
+      - '内容把握が必要なら speech-to-text で文字起こしして要約'
+    verify: 'ffprobe の長さ・形式が結果に記載され、検出値が出力に残っている'
+    fb:
+      - 'ffmpeg 不在は Get-Command ffmpeg -> winget install Gyan.FFmpeg'
+      - '詳細解析は pip install librosa で実行'
+      - 'WSL の sox を代替に使う'
+    rel: [speech-to-text, music-audio-tools, video-analysis]
+    no: ['他人の音声から個人を特定しない', '元ファイルを上書きしない']
+    risk: low
+  - name: speech-to-text
+    d: 音声を文字起こしする(Whisper 系)
+    tr: [文字起こし, 音声認識, whisper, 書き起こし, STT]
+    tools: [terminal]
+    opt: [write_file]
+    deps: [ffmpeg, faster-whisper, python]
+    steps:
+      - 'ffmpeg -i <in> -ar 16000 -ac 1 work\audio.wav で正規化する'
+      - 'faster-whisper: python -c で WhisperModel("small", device="cuda" or "cpu").transcribe(wav, language="ja")'
+      - 'セグメントを時刻付きで transcripts\<name>.txt/.srt に保存する'
+      - '固有名詞・数値を音声と突き合わせ要確認箇所を印付けする'
+    verify: '文字起こし全長が音声長と対応し、サンプル箇所が音声と一致する'
+    fb:
+      - 'pip install faster-whisper が不可なら openai-whisper か whisper.cpp(main.exe -m ggml-small.bin)'
+      - 'CUDA 不可は device="cpu" と compute_type="int8"'
+      - 'ローカル不可はクラウド STT(機密でない場合のみ)'
+    rel: [audio-analysis, video-analysis, tts]
+    no: ['機密音声を外部 STT へ承認なしで送らない', '無断録音の文字起こしを行わない']
+    risk: low
+  - name: tts
+    d: テキストを音声合成して音声ファイルを作る
+    tr: [読み上げ, 音声合成, TTS, ナレーション]
+    tools: [text_to_speech]
+    opt: [terminal, write_file]
+    deps: [ffmpeg]
+    steps:
+      - '読み上げ原稿を整形(数式・URL・英略語に読み仮名)する'
+      - 'text_to_speech で生成し outputs\audio\ に保存する'
+      - 'ffprobe で長さを確認し、必要なら ffmpeg で mp3/wav 変換・音量正規化'
+      - '聞き取りにくい箇所は原稿を修正して再生成する'
+    verify: '音声ファイルが生成され、ffprobe の長さが想定範囲内'
+    fb:
+      - 'provider 不可は Windows 標準: System.Speech.Synthesis.SpeechSynthesizer(PowerShell)'
+      - '高品質ローカルは piper-tts / VOICEVOX(:50021)を利用'
+      - 'ffmpeg 不在は winget install Gyan.FFmpeg'
+    rel: [speech-to-text, music-audio-tools, audio-analysis]
+    no: ['実在人物の声のなりすましをしない', '有料 TTS の大量生成を承認なしで行わない']
+    risk: low
+  - name: music-audio-tools
+    d: 音声の変換・切出し・結合・正規化を行う
+    tr: [音声変換, mp3, 音声カット, 結合, ノーマライズ]
+    tools: [terminal]
+    opt: [execute_code]
+    deps: [ffmpeg]
+    steps:
+      - '変換: ffmpeg -i in.wav -b:a 192k out\out.mp3(出力は新規ディレクトリ)'
+      - '切出し: ffmpeg -ss 00:01:00 -to 00:02:30 -i in.mp3 -c copy out\clip.mp3'
+      - '結合: list.txt に file ''a.mp3'' を並べ ffmpeg -f concat -safe 0 -i list.txt -c copy out\all.mp3'
+      - '音量: ffmpeg -i in -af loudnorm=I=-16 out\norm.wav'
+    verify: 'ffprobe で出力の形式・長さが指定どおり'
+    fb:
+      - 'ffmpeg 不在は winget install Gyan.FFmpeg、または choco install ffmpeg'
+      - 'コピー結合で失敗するなら再エンコード(-c:a libmp3lame)'
+      - 'GUI は winget install Audacity.Audacity'
+    rel: [audio-analysis, tts, video-frame-extraction]
+    no: ['元ファイルを上書きしない', '著作権物の無断配布・加工公開をしない']
+    risk: low
+  - name: video-analysis
+    d: 動画の内容・構成・音声を解析して要約する
+    tr: [動画解析, 動画要約, video analyze, 動画を見て]
+    tools: [video_analyze]
+    opt: [terminal, vision_analyze]
+    deps: [ffmpeg, ffprobe]
+    steps:
+      - 'ffprobe -v error -show_format -show_streams <video> で長さ・解像度・fps を確認'
+      - 'video_analyze に動画と質問を渡し、長尺は区間分割(ffmpeg -ss/-t)して解析'
+      - '映像は video-frame-extraction、音声は speech-to-text で補完する'
+      - '時刻付きタイムラインで要約する'
+    verify: '要約の主要シーンに時刻があり、フレーム/音声で裏取りされている'
+    fb:
+      - 'video_analyze 不可は 1〜5 秒間隔でフレーム抽出し vision_analyze で個別解析'
+      - 'ffmpeg 不在は winget install Gyan.FFmpeg'
+      - '大容量は 720p に縮小して再投入'
+    rel: [video-frame-extraction, speech-to-text, vision]
+    no: ['機密動画を外部 provider へ承認なしで送らない', '映像内人物の特定をしない']
+    risk: low
+  - name: video-frame-extraction
+    d: 動画から代表フレームや連番画像を抽出する
+    tr: [フレーム抽出, サムネイル, 連番画像, ffmpeg frames]
+    tools: [terminal]
+    opt: [vision_analyze]
+    deps: [ffmpeg]
+    steps:
+      - '出力用の空ディレクトリを作る: New-Item -ItemType Directory frames\<name>'
+      - '等間隔: ffmpeg -i <video> -vf fps=1 frames\<name>\f_%04d.png'
+      - '場面転換: ffmpeg -i <video> -vf "select=gt(scene\,0.4)" -vsync vfr frames\<name>\s_%04d.png'
+      - '特定時刻: ffmpeg -ss 00:00:30 -i <video> -frames:v 1 out.png'
+      - '枚数を数え、代表フレームを vision_analyze で確認'
+    verify: '(Get-ChildItem frames\<name>).Count が想定枚数と一致する'
+    fb:
+      - 'ffmpeg 不在は winget install Gyan.FFmpeg'
+      - 'ffmpeg 不可は python -m pip install opencv-python で cv2.VideoCapture'
+      - 'ディスク消費大なら fps を下げるか JPEG(-q:v 3)'
+    rel: [video-analysis, image-analysis, music-audio-tools]
+    no: ['既存ディレクトリのファイルを上書き・大量削除しない', '機密動画のフレームを外部送信しない']
+    risk: low

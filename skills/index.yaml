@@ -1,0 +1,3098 @@
+version: 1
+generated_by: scripts/kiridev_skills.py
+count: 269
+skills:
+- name: agent-design
+  category: ai
+  path: ai/agent-design
+  description: エージェントの役割・ツール・制御フローを設計する
+  triggers:
+  - エージェント設計
+  - ワークフロー
+  - 役割分担
+  - 設計
+  risk_level: low
+  source: catalog
+- name: agent-evaluation
+  category: ai
+  path: ai/agent-evaluation
+  description: エージェントのタスク完遂率・安全性を評価する
+  triggers:
+  - エージェント評価
+  - 成功率
+  - タスク完遂
+  - 回帰
+  risk_level: low
+  source: catalog
+- name: benchmark-suite
+  category: ai
+  path: ai/benchmark-suite
+  description: 標準ベンチと自前ベンチで性能を継続計測する
+  triggers:
+  - ベンチマーク
+  - benchmark
+  - llama-bench
+  - 速度比較
+  risk_level: low
+  source: catalog
+- name: context-compression
+  category: ai
+  path: ai/context-compression
+  description: 長い会話・資料を情報を保って圧縮する
+  triggers:
+  - 要約
+  - 圧縮
+  - compact
+  - コンテキスト圧縮
+  risk_level: low
+  source: catalog
+- name: context-engineering
+  category: ai
+  path: ai/context-engineering
+  description: コンテキスト構成・長さ・配置を設計し精度を保つ
+  triggers:
+  - コンテキスト設計
+  - 長文
+  - context window
+  - 文脈
+  risk_level: low
+  source: catalog
+- name: embedding-search
+  category: ai
+  path: ai/embedding-search
+  description: 埋め込みモデルによる意味検索を実装する
+  triggers:
+  - 埋め込み
+  - embedding
+  - 類似検索
+  - ベクトル
+  risk_level: low
+  source: catalog
+- name: gpu-offload
+  category: ai
+  path: ai/gpu-offload
+  description: GPU オフロード層数・VRAM 配分のチューニング
+  triggers:
+  - ngl
+  - オフロード
+  - VRAM不足
+  - OOM
+  - 高速化
+  risk_level: low
+  source: catalog
+- name: llama-cpp
+  category: ai
+  path: ai/llama-cpp
+  description: llama.cpp(llama-server/llama-cli)の導入と実行
+  triggers:
+  - llama.cpp
+  - llama-server
+  - GGUF
+  - llama-cli
+  risk_level: medium
+  source: catalog
+- name: local-llm
+  category: ai
+  path: ai/local-llm
+  description: ローカル LLM サーバー(Strata/LM Studio)の起動と接続確認
+  triggers:
+  - ローカルLLM
+  - Strata
+  - LM Studio
+  - 8080
+  - 1234
+  risk_level: medium
+  source: catalog
+- name: mcp
+  category: ai
+  path: ai/mcp
+  description: MCP サーバーの導入・設定・接続確認
+  triggers:
+  - MCP
+  - Model Context Protocol
+  - mcp server
+  - ツール連携
+  risk_level: medium
+  source: catalog
+- name: memory-design
+  category: ai
+  path: ai/memory-design
+  description: エージェントの記憶(短期/長期)の保存方針を設計する
+  triggers:
+  - 記憶設計
+  - memory
+  - 長期記憶
+  - 保存方針
+  risk_level: low
+  source: catalog
+- name: model-evaluation
+  category: ai
+  path: ai/model-evaluation
+  description: モデルの品質・速度を再現可能な手順で評価する
+  triggers:
+  - モデル評価
+  - 比較
+  - ベンチ
+  - 精度確認
+  risk_level: low
+  source: catalog
+- name: model-selection
+  category: ai
+  path: ai/model-selection
+  description: 用途・VRAM に合うモデルとサイズを選定する
+  triggers:
+  - モデル選定
+  - どのモデル
+  - Qwen
+  - VRAM
+  risk_level: low
+  source: catalog
+- name: multi-model-routing
+  category: ai
+  path: ai/multi-model-routing
+  description: タスク別に複数モデル(ローカル/クラウド)を使い分ける
+  triggers:
+  - ルーティング
+  - モデル切替
+  - auxiliary
+  - フォールバックモデル
+  risk_level: medium
+  source: catalog
+- name: prompt-engineering
+  category: ai
+  path: ai/prompt-engineering
+  description: プロンプトを設計・改善し出力品質を安定させる
+  triggers:
+  - プロンプト
+  - 指示文
+  - few-shot
+  - 出力形式
+  risk_level: low
+  source: catalog
+- name: quantization
+  category: ai
+  path: ai/quantization
+  description: GGUF 量子化の選択・変換・品質比較
+  triggers:
+  - 量子化
+  - quant
+  - IQ3_XXS
+  - Q4_K_M
+  - imatrix
+  risk_level: low
+  source: catalog
+- name: rag
+  category: ai
+  path: ai/rag
+  description: ドキュメント検索拡張生成(RAG)を構築・運用する
+  triggers:
+  - RAG
+  - 検索拡張
+  - ベクトルDB
+  - ナレッジ検索
+  risk_level: low
+  source: catalog
+- name: self-improving
+  category: ai
+  path: ai/self-improving
+  description: 失敗/回復/成功パターンから Skill・Routing 改善候補を作る
+  triggers:
+  - タスク終了後
+  - 同じ失敗の再発
+  - Skill 改善
+  - /refine
+  risk_level: medium
+  source: hand-written
+- name: skill-authoring
+  category: ai
+  path: ai/skill-authoring
+  description: Hermes Skill(SKILL.md)を設計・作成する
+  triggers:
+  - スキル作成
+  - SKILL.md
+  - skill 追加
+  - 手順書化
+  risk_level: low
+  source: catalog
+- name: skill-evaluation
+  category: ai
+  path: ai/skill-evaluation
+  description: Skill の発火精度と手順の有効性を検証する
+  triggers:
+  - スキル評価
+  - 発火
+  - trigger 検証
+  - skill テスト
+  risk_level: low
+  source: catalog
+- name: strata
+  category: ai
+  path: ai/strata
+  description: Strata ローカル LLM サーバの起動・疎通・設定・トラブル対応
+  triggers:
+  - Strata
+  - ローカルモデル
+  - 8080
+  - IQ3_XXS
+  - tok/s
+  - モデルサーバ
+  risk_level: medium
+  source: hand-written
+- name: subagent-design
+  category: ai
+  path: ai/subagent-design
+  description: サブエージェントへの分割・委任と結果統合を設計する
+  triggers:
+  - サブエージェント
+  - 並列
+  - delegate
+  - 委任
+  risk_level: medium
+  source: catalog
+- name: tool-use-evaluation
+  category: ai
+  path: ai/tool-use-evaluation
+  description: ツール呼び出しの正確性・引数妥当性を評価する
+  triggers:
+  - ツール呼び出し
+  - function calling
+  - tool call 評価
+  risk_level: low
+  source: catalog
+- name: vision-routing
+  category: ai
+  path: ai/vision-routing
+  description: 画像入力を視覚対応モデルへ振り分ける
+  triggers:
+  - 視覚モデル
+  - vision provider
+  - 画像が読めない
+  - auxiliary.vision
+  risk_level: medium
+  source: catalog
+- name: cron-scheduled-work
+  category: automation
+  path: automation/cron-scheduled-work
+  description: cronjob / hermes cron で定期・予約タスクを設定
+  triggers:
+  - 定期実行
+  - スケジュール
+  - cron
+  - 毎日
+  - 毎朝
+  risk_level: medium
+  source: catalog
+- name: environment-bootstrap
+  category: automation
+  path: automation/environment-bootstrap
+  description: 新規 Windows 環境の開発ツールと依存を整備
+  triggers:
+  - 環境構築
+  - セットアップ
+  - bootstrap
+  - 初期設定
+  - 開発環境
+  risk_level: medium
+  source: catalog
+- name: failure-recovery
+  category: automation
+  path: automation/failure-recovery
+  description: 失敗の原因分類と代替経路での復旧
+  triggers:
+  - 失敗
+  - エラー復旧
+  - リトライ
+  - 詰まった
+  risk_level: low
+  source: catalog
+- name: git-worktree
+  category: automation
+  path: automation/git-worktree
+  description: git worktree で並行作業用の独立作業ツリーを使う
+  triggers:
+  - worktree
+  - 並行ブランチ
+  - 別ブランチで作業
+  - /worktree
+  risk_level: low
+  source: catalog
+- name: goal-driven-autonomy
+  category: automation
+  path: automation/goal-driven-autonomy
+  description: /goal の達成条件に向けて自律的に計画・実行・検証
+  triggers:
+  - ゴール
+  - goal
+  - 目標達成まで
+  - overnight-goal
+  risk_level: medium
+  source: catalog
+- name: long-running-task
+  category: automation
+  path: automation/long-running-task
+  description: 長時間処理をバックグラウンド実行し監視・再開可能にする
+  triggers:
+  - 長時間
+  - バックグラウンド
+  - 時間がかかる
+  - ビルド待ち
+  risk_level: low
+  source: catalog
+- name: multi-agent
+  category: automation
+  path: automation/multi-agent
+  description: 複数エージェントの役割分担と統合で大規模作業を進める
+  triggers:
+  - マルチエージェント
+  - 役割分担
+  - 並列エージェント
+  - kanban
+  risk_level: medium
+  source: catalog
+- name: overnight-autonomy
+  category: automation
+  path: automation/overnight-autonomy
+  description: 夜間・不在時に承認不要範囲で自律的に作業を進める
+  triggers:
+  - 夜間
+  - 放置
+  - 寝てる間
+  - overnight
+  - 不在
+  risk_level: high
+  source: catalog
+- name: parallel-execution
+  category: automation
+  path: automation/parallel-execution
+  description: 独立タスクを並列実行して時間短縮する
+  triggers:
+  - 並列
+  - 同時実行
+  - parallel
+  - 並行処理
+  risk_level: low
+  source: catalog
+- name: rollback
+  category: automation
+  path: automation/rollback
+  description: 変更を /rollback・/snapshot・git で安全に巻き戻す
+  triggers:
+  - ロールバック
+  - 元に戻す
+  - 巻き戻し
+  - undo
+  - revert
+  risk_level: high
+  source: catalog
+- name: self-update
+  category: automation
+  path: automation/self-update
+  description: hermes update で Hermes 本体を安全に更新
+  triggers:
+  - アップデート
+  - hermes update
+  - 更新
+  - バージョンアップ
+  risk_level: medium
+  source: catalog
+- name: skill-update
+  category: automation
+  path: automation/skill-update
+  description: skill の追加・更新を catalog から生成し Hermes へ同期
+  triggers:
+  - スキル更新
+  - skill同期
+  - sync
+  - カタログ更新
+  risk_level: low
+  source: catalog
+- name: status-reporting
+  category: automation
+  path: automation/status-reporting
+  description: 進捗・結果・未完事項を簡潔で正確に報告
+  triggers:
+  - 進捗報告
+  - ステータス
+  - 報告
+  - 状況まとめ
+  risk_level: low
+  source: catalog
+- name: subagent-delegation
+  category: automation
+  path: automation/subagent-delegation
+  description: delegate_task でサブエージェントへ作業を委譲
+  triggers:
+  - サブエージェント
+  - 委譲
+  - delegate
+  - 子エージェント
+  risk_level: low
+  source: catalog
+- name: task-prioritization
+  category: automation
+  path: automation/task-prioritization
+  description: タスクを緊急度・重要度・依存で優先順位付け (/priorities)
+  triggers:
+  - 優先順位
+  - 優先度
+  - priorities
+  - 何からやる
+  risk_level: low
+  source: catalog
+- name: task-resume
+  category: automation
+  path: automation/task-resume
+  description: 中断した作業を状態復元して再開 (/pickup)
+  triggers:
+  - 再開
+  - 続き
+  - pickup
+  - 前回の続き
+  - 中断
+  risk_level: low
+  source: catalog
+- name: workflow-orchestration
+  category: automation
+  path: automation/workflow-orchestration
+  description: 複数ステップの作業を依存関係付きで設計・実行・追跡
+  triggers:
+  - ワークフロー
+  - パイプライン
+  - 段取り
+  - オーケストレーション
+  risk_level: low
+  source: catalog
+- name: context-builder
+  category: core
+  path: core/context-builder
+  description: 必要最小限の Context を組み立て、溢れたら要約・分割する
+  triggers:
+  - 大きいリポジトリ
+  - 長い会話
+  - context-overflow
+  - 大きいログ/ファイル
+  risk_level: low
+  source: hand-written
+- name: fallback
+  category: core
+  path: core/fallback
+  description: 失敗を分類し代替経路で再試行する汎用 Fallback Engine
+  triggers:
+  - コマンドが見つからない
+  - エラー
+  - 失敗
+  - 権限エラー
+  - 形式非対応
+  - タイムアウト
+  - できない
+  risk_level: medium
+  source: hand-written
+- name: fallback-model-routing
+  category: core
+  path: core/fallback-model-routing
+  description: モデル障害・能力不足時の代替モデル経路と検証手順
+  triggers:
+  - model-capability-gap
+  - rate-limit
+  - network-failure
+  - モデルが応答しない
+  risk_level: medium
+  source: hand-written
+- name: kiridev-state
+  category: core
+  path: core/kiridev-state
+  description: タスク/ルート/Fallback/検証結果を SQLite に記録・参照する
+  triggers:
+  - 記録
+  - ログ
+  - 履歴
+  - ベンチマーク結果
+  - 何を試したか
+  risk_level: low
+  source: hand-written
+- name: model-router
+  category: core
+  path: core/model-router
+  description: Local-first で Strata を使い、能力不足時のみ上位モデルへ昇格
+  triggers:
+  - ローカルモデルで品質不足
+  - 同じ失敗が繰り返す
+  - 画像が必要
+  - 大規模設計
+  - モデル切替
+  risk_level: medium
+  source: hand-written
+- name: permission-policy
+  category: core
+  path: core/permission-policy
+  description: KiriDev 権限方針。通常操作は無確認、高リスクのみ確認
+  triggers:
+  - 削除
+  - 公開
+  - 送信
+  - 認証情報
+  - 購入
+  - システム設定
+  - 管理者権限
+  risk_level: high
+  source: hand-written
+- name: provider-routing
+  category: core
+  path: core/provider-routing
+  description: Hermes の provider/fallback 設定を確認・追加・修復する
+  triggers:
+  - provider 追加
+  - API 接続エラー
+  - fallback 設定
+  - 新しいモデルサーバ
+  risk_level: medium
+  source: hand-written
+- name: skill-router
+  category: core
+  path: core/skill-router
+  description: 依頼から必要な Skill だけを選んでロードする（全 Skill 投入禁止）
+  triggers:
+  - あらゆる新規タスクの開始時
+  - タスク種別が変わったとき
+  risk_level: low
+  source: hand-written
+- name: tool-router
+  category: core
+  path: core/tool-router
+  description: タスクに必要なツールだけを選び、無ければ導入・代替する
+  triggers:
+  - ツール選択
+  - 外部コマンドが必要
+  - MCP ツールが多い
+  risk_level: low
+  source: hand-written
+- name: cmake
+  category: cpp-windows
+  path: cpp-windows/cmake
+  description: CMake による C++ プロジェクトの構成・ビルド
+  triggers:
+  - CMake
+  - CMakeLists.txt
+  - CMakePresets
+  - ビルド構成
+  risk_level: low
+  source: catalog
+- name: concurrency
+  category: cpp-windows
+  path: cpp-windows/concurrency
+  description: C++ の並行処理・スレッド安全性の設計と検証
+  triggers:
+  - スレッド
+  - mutex
+  - atomic
+  - データ競合
+  - ジョブシステム
+  risk_level: low
+  source: catalog
+- name: directx11
+  category: cpp-windows
+  path: cpp-windows/directx11
+  description: Direct3D 11 の初期化・描画・シェーダ実装
+  triggers:
+  - DirectX 11
+  - D3D11
+  - HLSL
+  - SwapChain
+  - DXGI
+  risk_level: low
+  source: catalog
+- name: directx12
+  category: cpp-windows
+  path: cpp-windows/directx12
+  description: Direct3D 12 の初期化・同期・コマンドリスト実装
+  triggers:
+  - DirectX 12
+  - D3D12
+  - PSO
+  - CommandList
+  - DXC
+  risk_level: low
+  source: catalog
+- name: ecs
+  category: cpp-windows
+  path: cpp-windows/ecs
+  description: ECS (Entity Component System) の設計と実装
+  triggers:
+  - ECS
+  - エンティティ
+  - コンポーネント
+  - EnTT
+  - システム
+  risk_level: low
+  source: catalog
+- name: graphics-debugging
+  category: cpp-windows
+  path: cpp-windows/graphics-debugging
+  description: PIX/RenderDoc による描画不具合の調査
+  triggers:
+  - PIX
+  - RenderDoc
+  - 描画バグ
+  - 黒画面
+  - GPU クラッシュ
+  risk_level: low
+  source: catalog
+- name: memory-performance
+  category: cpp-windows
+  path: cpp-windows/memory-performance
+  description: C++ のメモリ・CPU 性能の計測と最適化
+  triggers:
+  - メモリリーク
+  - パフォーマンス
+  - プロファイル
+  - キャッシュ
+  - 最適化
+  risk_level: low
+  source: catalog
+- name: msbuild
+  category: cpp-windows
+  path: cpp-windows/msbuild
+  description: MSBuild による .sln/.vcxproj のビルドと診断
+  triggers:
+  - MSBuild
+  - .sln
+  - .vcxproj
+  - Visual Studio ビルド
+  risk_level: low
+  source: catalog
+- name: msvc
+  category: cpp-windows
+  path: cpp-windows/msvc
+  description: MSVC (cl/link) コンパイラ・リンカの利用と診断
+  triggers:
+  - MSVC
+  - cl.exe
+  - link.exe
+  - /std:c++20
+  - LNK
+  risk_level: low
+  source: catalog
+- name: physics-integration
+  category: cpp-windows
+  path: cpp-windows/physics-integration
+  description: 物理エンジンのゲーム/アプリへの統合
+  triggers:
+  - 物理演算
+  - Box2D
+  - Bullet
+  - PhysX
+  - Jolt
+  - 衝突判定
+  risk_level: low
+  source: catalog
+- name: win32
+  category: cpp-windows
+  path: cpp-windows/win32
+  description: Win32 API のウィンドウ・メッセージ・エラー処理の実装
+  triggers:
+  - Win32
+  - WinAPI
+  - HWND
+  - WndProc
+  - GetLastError
+  risk_level: low
+  source: catalog
+- name: 3d-pipeline
+  category: creative
+  path: creative/3d-pipeline
+  description: 3D 制作パイプライン（モデリング〜エンジン組込）設計
+  triggers:
+  - 3D パイプライン
+  - モデリング
+  - リトポ
+  - UV
+  - ベイク
+  - glTF
+  - FBX
+  risk_level: low
+  source: catalog
+- name: asset-generation
+  category: creative
+  path: creative/asset-generation
+  description: 画像/音声などアセットの生成・変換・命名管理
+  triggers:
+  - 画像生成
+  - アセット生成
+  - テクスチャ生成
+  - 音声合成
+  - アイコン作成
+  risk_level: medium
+  source: catalog
+- name: blender-assist
+  category: creative
+  path: creative/blender-assist
+  description: Blender のスクリプト・バッチ処理・レンダ支援
+  triggers:
+  - Blender
+  - bpy
+  - レンダリング
+  - モディファイア
+  - blender -b
+  risk_level: low
+  source: catalog
+- name: creative-direction
+  category: creative
+  path: creative/creative-direction
+  description: ビジュアル/世界観の方向性決定とスタイルガイド作成
+  triggers:
+  - 世界観
+  - アートディレクション
+  - スタイルガイド
+  - ムードボード
+  - コンセプト
+  risk_level: low
+  source: catalog
+- name: level-design
+  category: creative
+  path: creative/level-design
+  description: レベル設計（動線・難易度曲線・ペーシング）
+  triggers:
+  - レベルデザイン
+  - マップ設計
+  - 動線
+  - 難易度曲線
+  - ブロックアウト
+  risk_level: low
+  source: catalog
+- name: story-writing
+  category: creative
+  path: creative/story-writing
+  description: 物語・キャラクター・台詞の執筆と構成
+  triggers:
+  - 物語
+  - シナリオ
+  - 台詞
+  - キャラクター設定
+  - プロット
+  - 小説
+  risk_level: low
+  source: catalog
+- name: charting
+  category: data
+  path: data/charting
+  description: グラフ作成（matplotlib/plotly）と可視化の選定
+  triggers:
+  - グラフ
+  - チャート
+  - 可視化
+  - matplotlib
+  - plotly
+  - 棒グラフ
+  - 折れ線
+  risk_level: low
+  source: catalog
+- name: csv-tsv
+  category: data
+  path: data/csv-tsv
+  description: CSV/TSV の読み込み・変換・検証（文字コード/区切り対応）
+  triggers:
+  - CSV
+  - TSV
+  - 区切り文字
+  - 文字化け
+  - Shift_JIS
+  - 変換
+  risk_level: low
+  source: catalog
+- name: data-analysis
+  category: data
+  path: data/data-analysis
+  description: 探索的データ分析（EDA）と傾向・要因の把握
+  triggers:
+  - データ分析
+  - 集計
+  - EDA
+  - 傾向
+  - 相関
+  - pandas
+  risk_level: low
+  source: catalog
+- name: data-cleaning
+  category: data
+  path: data/data-cleaning
+  description: 欠損・重複・表記ゆれ・型の整形（クレンジング）
+  triggers:
+  - データクレンジング
+  - 欠損値
+  - 重複
+  - 表記ゆれ
+  - 正規化
+  - 外れ値
+  risk_level: low
+  source: catalog
+- name: json
+  category: data
+  path: data/json
+  description: JSON の整形・検証・変換・クエリ（jq/Python/PowerShell）
+  triggers:
+  - JSON
+  - jq
+  - JSON Schema
+  - 整形
+  - パース
+  - ConvertFrom-Json
+  risk_level: low
+  source: catalog
+- name: report-generation
+  category: data
+  path: data/report-generation
+  description: 分析結果のレポート（Markdown/HTML/PDF/docx）作成
+  triggers:
+  - レポート
+  - 報告書
+  - 分析結果まとめ
+  - PDF 出力
+  - docx
+  - 資料作成
+  risk_level: low
+  source: catalog
+- name: spreadsheet
+  category: data
+  path: data/spreadsheet
+  description: Excel/スプレッドシート（xlsx）の読み書き・数式・集計
+  triggers:
+  - Excel
+  - xlsx
+  - スプレッドシート
+  - ピボット
+  - 数式
+  - シート
+  risk_level: low
+  source: catalog
+- name: sqlite
+  category: data
+  path: data/sqlite
+  description: SQLite DB の作成・クエリ・インポート/エクスポート
+  triggers:
+  - SQLite
+  - sqlite3
+  - .db
+  - ローカル DB
+  - SQL
+  risk_level: medium
+  source: catalog
+- name: statistics
+  category: data
+  path: data/statistics
+  description: 統計検定・信頼区間・回帰の適切な適用と解釈
+  triggers:
+  - 統計
+  - t 検定
+  - 信頼区間
+  - 回帰
+  - p 値
+  - 分散分析
+  - 相関
+  risk_level: low
+  source: catalog
+- name: xml
+  category: data
+  path: data/xml
+  description: XML の解析・XPath 抽出・変換・検証
+  triggers:
+  - XML
+  - XPath
+  - XSLT
+  - XSD
+  - パース
+  - csproj
+  - SVG
+  risk_level: low
+  source: catalog
+- name: yaml
+  category: data
+  path: data/yaml
+  description: YAML の編集・検証・変換（インデント/型の落とし穴対策）
+  triggers:
+  - YAML
+  - yml
+  - インデント
+  - 設定ファイル
+  - CI 設定
+  - compose
+  risk_level: low
+  source: catalog
+- name: benchmarking
+  category: development
+  path: development/benchmarking
+  description: 再現可能なベンチマークの設計と結果比較
+  triggers:
+  - ベンチマーク
+  - benchmark
+  - hyperfine
+  - 比較計測
+  risk_level: low
+  source: catalog
+- name: build-systems
+  category: development
+  path: development/build-systems
+  description: ビルド構成の作成・修復（CMake/MSBuild/npm scripts 等）
+  triggers:
+  - ビルド
+  - build
+  - CMake
+  - MSBuild
+  - webpack
+  - vite
+  - コンパイルエラー
+  risk_level: low
+  source: catalog
+- name: debugging
+  category: development
+  path: development/debugging
+  description: 再現から根本原因特定・回帰テストまでの体系的デバッグ
+  triggers:
+  - バグ
+  - エラー
+  - 例外
+  - 動かない
+  - クラッシュ
+  - debug
+  risk_level: low
+  source: catalog
+- name: dependency-management
+  category: development
+  path: development/dependency-management
+  description: 依存パッケージの追加・更新・脆弱性確認
+  triggers:
+  - 依存関係
+  - パッケージ更新
+  - npm
+  - pip
+  - NuGet
+  - 脆弱性
+  risk_level: medium
+  source: catalog
+- name: git
+  category: development
+  path: development/git
+  description: Git の status/diff/log/branch/stash/worktree 操作
+  triggers:
+  - git
+  - commit
+  - branch
+  - diff
+  - stash
+  - worktree
+  - 履歴
+  risk_level: medium
+  source: catalog
+- name: package-release
+  category: development
+  path: development/package-release
+  description: バージョニング・成果物作成・リリース準備
+  triggers:
+  - リリース
+  - release
+  - バージョン
+  - タグ
+  - パッケージ化
+  - publish
+  risk_level: high
+  source: catalog
+- name: profiling-performance
+  category: development
+  path: development/profiling-performance
+  description: CPU/メモリのボトルネックを計測して特定する
+  triggers:
+  - 遅い
+  - パフォーマンス
+  - プロファイル
+  - メモリリーク
+  - CPU 使用率
+  risk_level: low
+  source: catalog
+- name: refactoring
+  category: development
+  path: development/refactoring
+  description: 挙動を変えず構造を改善する安全なリファクタリング
+  triggers:
+  - リファクタ
+  - refactor
+  - 整理
+  - 重複排除
+  - 命名変更
+  risk_level: medium
+  source: catalog
+- name: requirements-analysis
+  category: development
+  path: development/requirements-analysis
+  description: 要件の抽出・曖昧さ解消・受け入れ基準の定義
+  triggers:
+  - 要件
+  - 仕様
+  - 受け入れ基準
+  - ユーザーストーリー
+  - 要件定義
+  risk_level: low
+  source: catalog
+- name: software-architecture
+  category: development
+  path: development/software-architecture
+  description: モジュール境界と依存方向を決めるアーキテクチャ設計
+  triggers:
+  - アーキテクチャ
+  - 設計方針
+  - レイヤー
+  - モジュール分割
+  - ADR
+  risk_level: low
+  source: catalog
+- name: system-design
+  category: development
+  path: development/system-design
+  description: スケール・可用性・データフローを含むシステム設計
+  triggers:
+  - システム設計
+  - スケーラビリティ
+  - 可用性
+  - 構成図
+  - キャパシティ
+  risk_level: low
+  source: catalog
+- name: tdd
+  category: development
+  path: development/tdd
+  description: Red→Green→Refactor によるテスト駆動開発
+  triggers:
+  - TDD
+  - テスト駆動
+  - red green
+  - 先にテスト
+  risk_level: low
+  source: catalog
+- name: testing
+  category: development
+  path: development/testing
+  description: テスト設計・実行・失敗解析（pytest/jest/dotnet test 等）
+  triggers:
+  - テスト
+  - pytest
+  - jest
+  - unit test
+  - カバレッジ
+  - CI
+  risk_level: low
+  source: catalog
+- name: chart-analysis
+  category: documents
+  path: documents/chart-analysis
+  description: Office のグラフ(charts) の系列・値・種類を抽出
+  triggers:
+  - グラフ
+  - chart
+  - charts/chart1.xml
+  - 系列
+  - 棒グラフ
+  risk_level: low
+  source: catalog
+- name: document-authoring
+  category: documents
+  path: documents/document-authoring
+  description: 新規文書(docx/pptx/xlsx/md)を構成から作成
+  triggers:
+  - 文書作成
+  - 資料作成
+  - レポート作成
+  - 新規ドキュメント
+  risk_level: low
+  source: catalog
+- name: document-comparison
+  category: documents
+  path: documents/document-comparison
+  description: 2つの文書の差分を本文・表・書式レベルで比較
+  triggers:
+  - 文書比較
+  - 差分
+  - diff
+  - 新旧対照
+  - 変更点
+  risk_level: low
+  source: catalog
+- name: document-editing
+  category: documents
+  path: documents/document-editing
+  description: 既存文書を書式を保ったまま編集
+  triggers:
+  - 文書編集
+  - 差し替え
+  - 修正
+  - 追記
+  - 書式維持
+  risk_level: medium
+  source: catalog
+- name: document-structure-analysis
+  category: documents
+  path: documents/document-structure-analysis
+  description: 文書の見出し・章立て・表・図・参照構造を解析
+  triggers:
+  - 構造解析
+  - 見出し
+  - 目次
+  - アウトライン
+  - スタイル
+  risk_level: low
+  source: catalog
+- name: document-summarization
+  category: documents
+  path: documents/document-summarization
+  description: 長文・複数文書を要点・決定事項・TODO に要約
+  triggers:
+  - 要約
+  - サマリ
+  - 概要
+  - 議事録まとめ
+  risk_level: low
+  source: catalog
+- name: embedded-media-extraction
+  category: documents
+  path: documents/embedded-media-extraction
+  description: Office 内の埋め込み画像・動画・OLE を抽出して解析
+  triggers:
+  - 埋め込み画像
+  - media
+  - OLE
+  - 画像抽出
+  - embeddings
+  risk_level: low
+  source: catalog
+- name: excel-xlsx
+  category: documents
+  path: documents/excel-xlsx
+  description: Excel(.xlsx) のシート・数式・グラフ・表の読取
+  triggers:
+  - xlsx
+  - Excel
+  - エクセル
+  - openpyxl
+  - シート
+  risk_level: low
+  source: catalog
+- name: ocr-fallback
+  category: documents
+  path: documents/ocr-fallback
+  description: 他手段で読めない画像・スキャンを tesseract で OCR
+  triggers:
+  - OCR
+  - tesseract
+  - スキャン
+  - 画像内文字
+  - 文字認識
+  risk_level: low
+  source: catalog
+- name: office-native-automation
+  category: documents
+  path: documents/office-native-automation
+  description: PowerShell COM で Word/Excel/PowerPoint をネイティブ操作
+  triggers:
+  - COM
+  - Word.Application
+  - Excel.Application
+  - ネイティブ Office
+  risk_level: medium
+  source: catalog
+- name: office-ooxml-inspection
+  category: documents
+  path: documents/office-ooxml-inspection
+  description: OOXML(zip) を直接展開して document.xml/rels/media を調査
+  triggers:
+  - OOXML
+  - unzip
+  - document.xml
+  - _rels
+  - 展開
+  risk_level: low
+  source: catalog
+- name: office-rendering
+  category: documents
+  path: documents/office-rendering
+  description: Office 文書を PDF/画像へ描画して視覚的に確認
+  triggers:
+  - PDF化
+  - レンダリング
+  - 画像化
+  - pdftoppm
+  - 見た目
+  risk_level: low
+  source: catalog
+- name: powerpoint-pptx
+  category: documents
+  path: documents/powerpoint-pptx
+  description: PowerPoint(.pptx) のスライド・ノート・図の解析
+  triggers:
+  - pptx
+  - PowerPoint
+  - スライド
+  - python-pptx
+  risk_level: low
+  source: catalog
+- name: smartart-analysis
+  category: documents
+  path: documents/smartart-analysis
+  description: SmartArt(diagrams) の構造とテキストを抽出
+  triggers:
+  - SmartArt
+  - diagrams
+  - 図表
+  - 組織図
+  - data1.xml
+  risk_level: low
+  source: catalog
+- name: speaker-notes-analysis
+  category: documents
+  path: documents/speaker-notes-analysis
+  description: PowerPoint のスピーカーノートを抽出・要約
+  triggers:
+  - スピーカーノート
+  - notes
+  - 発表者メモ
+  - notesSlide
+  risk_level: low
+  source: catalog
+- name: table-reconstruction
+  category: documents
+  path: documents/table-reconstruction
+  description: 文書・画像・PDF 内の表を構造化データ(CSV/表)へ復元
+  triggers:
+  - 表抽出
+  - テーブル
+  - 表復元
+  - 結合セル
+  - CSV化
+  risk_level: low
+  source: catalog
+- name: universal-document-ingestion
+  category: documents
+  path: documents/universal-document-ingestion
+  description: Office/PDF/画像入り文書を Fallback Chain で漏れなく抽出
+  triggers:
+  - Word を解析
+  - docx
+  - pptx
+  - xlsx
+  - PDF を全部読んで
+  - 画像入り文書
+  - 図表を抽出
+  risk_level: low
+  source: hand-written
+- name: word-docx
+  category: documents
+  path: documents/word-docx
+  description: Word(.docx) の読取・解析（python-docx→OOXML→COM の順）
+  triggers:
+  - docx
+  - Word
+  - ワード文書
+  - python-docx
+  risk_level: low
+  source: catalog
+- name: skill-creator
+  category: external
+  path: external/anthropics/skill-creator
+  description: Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to
+    test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy.
+  triggers: []
+  risk_level: external
+  source: external
+- name: ponytail
+  category: external
+  path: external/DietrichGebert/ponytail
+  description: 'Forces the laziest solution that actually works, simplest, shortest, most minimal. Channels a senior dev who has seen everything: question whether the task needs to exist at all (YAGNI),
+    reach for the standard library before custom code, native platform features before dependencies, one line before fifty. Supports intensity levels: lite, full (default), ultra. Use on ANY coding task:
+    writing, adding, refactoring, fixing, reviewing, or designing code, and choosing libraries or dependencies. Also use whenever the user says "ponytail", "be lazy", "lazy mode", "simplest solution", "minimal
+    solution", "yagni", "do less", or "shortest path", or complains about over-engineering, bloat, boilerplate, or unnecessary dependencies. Do NOT use for non-coding requests (general knowledge, prose,
+    translation, summaries, recipes).'
+  triggers: []
+  risk_level: external
+  source: external
+- name: ponytail-audit
+  category: external
+  path: external/DietrichGebert/ponytail-audit
+  description: 'Whole-repo audit for over-engineering. Like ponytail-review, but scans the entire codebase instead of a diff: a ranked list of what to delete, simplify, or replace with stdlib/native equivalents.
+    Use when the user says "audit this codebase", "audit for over-engineering", "what can I delete from this repo", "find bloat", "ponytail-audit", or "/ponytail-audit". One-shot report, does not apply
+    fixes.'
+  triggers: []
+  risk_level: external
+  source: external
+- name: ponytail-debt
+  category: external
+  path: external/DietrichGebert/ponytail-debt
+  description: Harvest every `ponytail:` comment in the codebase into a debt ledger, so the deliberate shortcuts and deferrals ponytail leaves behind get tracked instead of rotting into "later means never".
+    Use when the user says "ponytail debt", "/ponytail-debt", "what did ponytail defer", "list the shortcuts", "ponytail ledger", or "what did we mark to do later". One-shot report, changes nothing.
+  triggers: []
+  risk_level: external
+  source: external
+- name: ponytail-review
+  category: external
+  path: external/DietrichGebert/ponytail-review
+  description: 'Code review focused exclusively on over-engineering. Finds what to delete: reinvented standard library, unneeded dependencies, speculative abstractions, dead flexibility. One line per finding:
+    location, what to cut, what replaces it. Use when the user says "review for over-engineering", "what can we delete", "is this over-engineered", "simplify review", or invokes /ponytail-review. Complements
+    correctness-focused review, this one only hunts complexity.'
+  triggers: []
+  risk_level: external
+  source: external
+- name: grill-me
+  category: external
+  path: external/mattpocock/grill-me
+  description: A relentless interview to sharpen a plan or design.
+  triggers: []
+  risk_level: external
+  source: external
+- name: grilling
+  category: external
+  path: external/mattpocock/grilling
+  description: Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases.
+  triggers: []
+  risk_level: external
+  source: external
+- name: brainstorming
+  category: external
+  path: external/obra/brainstorming
+  description: You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.
+  triggers: []
+  risk_level: external
+  source: external
+- name: dispatching-parallel-agents
+  category: external
+  path: external/obra/dispatching-parallel-agents
+  description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
+  triggers: []
+  risk_level: external
+  source: external
+- name: executing-plans
+  category: external
+  path: external/obra/executing-plans
+  description: Use when executing an implementation plan in the current session as the implementer yourself — your human partner chose inline execution, or no subagent tool is available
+  triggers: []
+  risk_level: external
+  source: external
+- name: finishing-a-development-branch
+  category: external
+  path: external/obra/finishing-a-development-branch
+  description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work
+  triggers: []
+  risk_level: external
+  source: external
+- name: receiving-code-review
+  category: external
+  path: external/obra/receiving-code-review
+  description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not
+    performative agreement or blind implementation
+  triggers: []
+  risk_level: external
+  source: external
+- name: subagent-driven-development
+  category: external
+  path: external/obra/subagent-driven-development
+  description: Use when executing implementation plans with independent tasks in the current session
+  triggers: []
+  risk_level: external
+  source: external
+- name: using-git-worktrees
+  category: external
+  path: external/obra/using-git-worktrees
+  description: Use when starting feature work that needs isolation from current workspace or before executing implementation plans - ensures an isolated workspace exists via native tools or git worktree
+    fallback
+  triggers: []
+  risk_level: external
+  source: external
+- name: using-superpowers
+  category: external
+  path: external/obra/using-superpowers
+  description: Use when starting any conversation - establishes how to find and use skills, requiring skill invocation before ANY response including clarifying questions
+  triggers: []
+  risk_level: external
+  source: external
+- name: verification-before-completion
+  category: external
+  path: external/obra/verification-before-completion
+  description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims;
+    evidence before assertions always
+  triggers: []
+  risk_level: external
+  source: external
+- name: writing-plans
+  category: external
+  path: external/obra/writing-plans
+  description: Use when you have a spec or requirements for a multi-step task, before touching code
+  triggers: []
+  risk_level: external
+  source: external
+- name: writing-skills
+  category: external
+  path: external/obra/writing-skills
+  description: Use when creating new skills, editing existing skills, or verifying skills work before deployment
+  triggers: []
+  risk_level: external
+  source: external
+- name: agent-browser
+  category: external
+  path: external/vercel-labs/agent-browser
+  description: Browser automation CLI for AI agents. Use when the user needs to interact with websites, including navigating pages, filling forms, clicking buttons, taking screenshots, extracting data,
+    testing web apps, or automating any browser task. Triggers include requests to "open a website", "fill out a form", "click a button", "take a screenshot", "scrape data from a page", "test this web app",
+    "login to a site", "automate browser actions", or any task requiring programmatic web interaction. Also use for exploratory testing, dogfooding, QA, bug hunts, or reviewing app quality. Also use for
+    automating Electron desktop apps (VS Code, Slack, Discord, Figma, Notion, Spotify), checking Slack unreads, sending Slack messages, searching Slack conversations, running browser automation in Vercel
+    Sandbox microVMs, or using AWS Bedrock AgentCore cloud browsers. Prefer agent-browser over any built-in browser automation or web tools.
+  triggers: []
+  risk_level: external
+  source: external
+- name: asset-pipeline
+  category: game-development
+  path: game-development/asset-pipeline
+  description: テクスチャ・モデル・音声のインポート/最適化パイプライン
+  triggers:
+  - アセット
+  - インポート設定
+  - FBX
+  - テクスチャ圧縮
+  - LOD
+  - パイプライン
+  risk_level: low
+  source: catalog
+- name: game-ai
+  category: game-development
+  path: game-development/game-ai
+  description: ゲーム AI（経路探索・ビヘイビアツリー・ステートマシン）
+  triggers:
+  - ゲーム AI
+  - NavMesh
+  - ビヘイビアツリー
+  - A*
+  - 敵 AI
+  - 経路探索
+  risk_level: low
+  source: catalog
+- name: game-debugging
+  category: game-development
+  path: game-development/game-debugging
+  description: ゲーム固有の不具合調査（再現・ログ・クラッシュ解析）
+  triggers:
+  - ゲームのバグ
+  - クラッシュ
+  - 挙動がおかしい
+  - Unity エラー
+  - Unreal クラッシュ
+  risk_level: low
+  source: catalog
+- name: game-design
+  category: game-development
+  path: game-development/game-design
+  description: ゲームデザイン文書・コアループ・バランス設計
+  triggers:
+  - ゲームデザイン
+  - コアループ
+  - GDD
+  - バランス調整
+  - 企画
+  risk_level: low
+  source: catalog
+- name: game-networking
+  category: game-development
+  path: game-development/game-networking
+  description: マルチプレイ同期・ネットコード設計と検証
+  triggers:
+  - マルチプレイ
+  - ネットワーク
+  - レプリケーション
+  - Netcode
+  - Mirror
+  - ラグ補償
+  risk_level: medium
+  source: catalog
+- name: gameplay-systems
+  category: game-development
+  path: game-development/gameplay-systems
+  description: 移動・戦闘・インベントリ等のゲームプレイ機構実装
+  triggers:
+  - ゲームプレイ
+  - キャラクター移動
+  - 戦闘システム
+  - インベントリ
+  - ステート
+  risk_level: low
+  source: catalog
+- name: shader-hlsl
+  category: game-development
+  path: game-development/shader-hlsl
+  description: HLSL シェーダーの作成・最適化・デバッグ
+  triggers:
+  - HLSL
+  - シェーダー
+  - Shader Graph
+  - マテリアル
+  - GPU
+  - ピクセルシェーダー
+  risk_level: low
+  source: catalog
+- name: unity
+  category: game-development
+  path: game-development/unity
+  description: Unity プロジェクトの構成・C# スクリプト・シーン開発
+  triggers:
+  - Unity
+  - C#
+  - MonoBehaviour
+  - Prefab
+  - シーン
+  - ScriptableObject
+  risk_level: medium
+  source: catalog
+- name: unity-cli
+  category: game-development
+  path: game-development/unity-cli
+  description: Unity のバッチモード実行・CLI ビルド・テスト
+  triggers:
+  - Unity batchmode
+  - -executeMethod
+  - Unity ビルド
+  - CLI ビルド
+  - CI
+  risk_level: medium
+  source: catalog
+- name: unity-editor
+  category: game-development
+  path: game-development/unity-editor
+  description: Unity Editor 拡張・Inspector/メニュー/ツール作成
+  triggers:
+  - Editor 拡張
+  - EditorWindow
+  - CustomEditor
+  - MenuItem
+  - Unity ツール
+  risk_level: medium
+  source: catalog
+- name: unity-profiling
+  category: game-development
+  path: game-development/unity-profiling
+  description: Unity Profiler/Memory Profiler による性能調査
+  triggers:
+  - Unity Profiler
+  - フレームレート
+  - GC
+  - Memory Profiler
+  - スパイク
+  risk_level: low
+  source: catalog
+- name: unreal-blueprint
+  category: game-development
+  path: game-development/unreal-blueprint
+  description: Unreal Blueprint の設計・整理・C++ との連携
+  triggers:
+  - Blueprint
+  - ブループリント
+  - BP
+  - イベントグラフ
+  - UMG
+  risk_level: medium
+  source: catalog
+- name: unreal-build-tool
+  category: game-development
+  path: game-development/unreal-build-tool
+  description: UnrealBuildTool/UAT による C++ ビルドとパッケージ化
+  triggers:
+  - UnrealBuildTool
+  - UBT
+  - UAT
+  - RunUAT
+  - BuildCookRun
+  - Build.cs
+  risk_level: medium
+  source: catalog
+- name: unreal-cpp
+  category: game-development
+  path: game-development/unreal-cpp
+  description: Unreal C++（UCLASS/UPROPERTY/Actor/Component）実装
+  triggers:
+  - Unreal C++
+  - UCLASS
+  - UPROPERTY
+  - UFUNCTION
+  - AActor
+  - GameMode
+  risk_level: medium
+  source: catalog
+- name: unreal-engine
+  category: game-development
+  path: game-development/unreal-engine
+  description: Unreal Engine プロジェクト全般の構成・運用
+  triggers:
+  - Unreal
+  - UE5
+  - .uproject
+  - Unreal Editor
+  - レベル
+  - アセット
+  risk_level: medium
+  source: catalog
+- name: bash
+  category: languages
+  path: languages/bash
+  description: Bash スクリプト作成(Git Bash / WSL)と実行
+  triggers:
+  - bash
+  - シェルスクリプト
+  - .sh
+  - WSL
+  - Git Bash
+  risk_level: low
+  source: catalog
+- name: c
+  category: languages
+  path: languages/c
+  description: C 言語のコード作成・ビルド・デバッグ
+  triggers:
+  - C言語
+  - .c
+  - gcc
+  - ポインタ
+  - malloc
+  risk_level: low
+  source: catalog
+- name: cpp
+  category: languages
+  path: languages/cpp
+  description: C++ (C++17/20) のコード作成・ビルド・デバッグ
+  triggers:
+  - C++
+  - cpp
+  - .cpp
+  - 'std:': null
+  - テンプレート
+  risk_level: low
+  source: catalog
+- name: csharp
+  category: languages
+  path: languages/csharp
+  description: C# / .NET のコード作成・ビルド・テスト
+  triggers:
+  - C#
+  - csharp
+  - .NET
+  - dotnet
+  - csproj
+  risk_level: low
+  source: catalog
+- name: javascript
+  category: languages
+  path: languages/javascript
+  description: JavaScript / Node.js のコード作成・実行・テスト
+  triggers:
+  - JavaScript
+  - JS
+  - Node
+  - npm
+  - .js
+  risk_level: low
+  source: catalog
+- name: powershell-scripting
+  category: languages
+  path: languages/powershell-scripting
+  description: 再利用可能な PowerShell スクリプト/モジュールの作成
+  triggers:
+  - ps1
+  - PowerShell スクリプト
+  - 関数
+  - モジュール
+  - Pester
+  risk_level: low
+  source: catalog
+- name: python
+  category: languages
+  path: languages/python
+  description: Python スクリプト作成・venv・pytest 実行
+  triggers:
+  - Python
+  - py
+  - pip
+  - venv
+  - pytest
+  risk_level: low
+  source: catalog
+- name: sql
+  category: languages
+  path: languages/sql
+  description: SQL の作成・最適化・安全な実行
+  triggers:
+  - SQL
+  - クエリ
+  - SELECT
+  - SQLite
+  - PostgreSQL
+  risk_level: high
+  source: catalog
+- name: typescript
+  category: languages
+  path: languages/typescript
+  description: TypeScript の型設計・ビルド・型チェック
+  triggers:
+  - TypeScript
+  - TS
+  - tsc
+  - tsconfig
+  - .ts
+  risk_level: low
+  source: catalog
+- name: audio-analysis
+  category: multimodal
+  path: multimodal/audio-analysis
+  description: 音声ファイルの特徴・内容・メタ情報を解析する
+  triggers:
+  - 音声解析
+  - 音声ファイル
+  - ffprobe
+  - 波形
+  - 無音検出
+  risk_level: low
+  source: catalog
+- name: diagram-analysis
+  category: multimodal
+  path: multimodal/diagram-analysis
+  description: 図・フローチャート・ER 図を読み取り構造化する
+  triggers:
+  - 図の解析
+  - フローチャート
+  - 構成図
+  - ER図
+  - 図を読んで
+  risk_level: low
+  source: catalog
+- name: image-analysis
+  category: multimodal
+  path: multimodal/image-analysis
+  description: 画像の詳細分析(OCR・属性・差分・メタデータ)
+  triggers:
+  - 画像分析
+  - OCR
+  - EXIF
+  - 画像比較
+  risk_level: low
+  source: catalog
+- name: image-editing
+  category: multimodal
+  path: multimodal/image-editing
+  description: 画像のリサイズ・切抜き・変換・注釈を行う
+  triggers:
+  - 画像編集
+  - リサイズ
+  - トリミング
+  - 変換
+  - 透過
+  risk_level: low
+  source: catalog
+- name: image-generation
+  category: multimodal
+  path: multimodal/image-generation
+  description: テキストから画像を生成する
+  triggers:
+  - 画像生成
+  - 絵を描いて
+  - image generate
+  - イラスト
+  risk_level: medium
+  source: catalog
+- name: music-audio-tools
+  category: multimodal
+  path: multimodal/music-audio-tools
+  description: 音声の変換・切出し・結合・正規化を行う
+  triggers:
+  - 音声変換
+  - mp3
+  - 音声カット
+  - 結合
+  - ノーマライズ
+  risk_level: low
+  source: catalog
+- name: screenshot-analysis
+  category: multimodal
+  path: multimodal/screenshot-analysis
+  description: スクリーンショットから UI 状態・エラーを読み取る
+  triggers:
+  - スクリーンショット
+  - スクショ
+  - エラー画面
+  - 画面を見て
+  risk_level: low
+  source: catalog
+- name: speech-to-text
+  category: multimodal
+  path: multimodal/speech-to-text
+  description: 音声を文字起こしする(Whisper 系)
+  triggers:
+  - 文字起こし
+  - 音声認識
+  - whisper
+  - 書き起こし
+  - STT
+  risk_level: low
+  source: catalog
+- name: tts
+  category: multimodal
+  path: multimodal/tts
+  description: テキストを音声合成して音声ファイルを作る
+  triggers:
+  - 読み上げ
+  - 音声合成
+  - TTS
+  - ナレーション
+  risk_level: low
+  source: catalog
+- name: ui-ux-analysis
+  category: multimodal
+  path: multimodal/ui-ux-analysis
+  description: UI/UX の課題をヒューリスティックに分析・改善提案する
+  triggers:
+  - UI分析
+  - UX改善
+  - 画面レビュー
+  - アクセシビリティ
+  risk_level: low
+  source: catalog
+- name: ui-ux-generation
+  category: multimodal
+  path: multimodal/ui-ux-generation
+  description: UI のワイヤー・モック・HTML/CSS 実装を生成する
+  triggers:
+  - UI作成
+  - ワイヤーフレーム
+  - モック
+  - 画面デザイン
+  - HTML/CSS
+  risk_level: low
+  source: catalog
+- name: video-analysis
+  category: multimodal
+  path: multimodal/video-analysis
+  description: 動画の内容・構成・音声を解析して要約する
+  triggers:
+  - 動画解析
+  - 動画要約
+  - video analyze
+  - 動画を見て
+  risk_level: low
+  source: catalog
+- name: video-frame-extraction
+  category: multimodal
+  path: multimodal/video-frame-extraction
+  description: 動画から代表フレームや連番画像を抽出する
+  triggers:
+  - フレーム抽出
+  - サムネイル
+  - 連番画像
+  - ffmpeg frames
+  risk_level: low
+  source: catalog
+- name: vision
+  category: multimodal
+  path: multimodal/vision
+  description: 画像の内容を視覚モデルで認識・説明する
+  triggers:
+  - 画像を見て
+  - 画像認識
+  - この画像
+  - vision
+  risk_level: low
+  source: catalog
+- name: artifact-validation
+  category: quality
+  path: quality/artifact-validation
+  description: 生成物（ファイル・ビルド・文書）が正しく使えるか検証
+  triggers:
+  - 成果物検証
+  - 生成物確認
+  - ビルド確認
+  - 出力チェック
+  risk_level: low
+  source: catalog
+- name: code-review
+  category: quality
+  path: quality/code-review
+  description: 差分をバグ・設計・保守性の観点でレビュー
+  triggers:
+  - コードレビュー
+  - レビュー
+  - PR確認
+  - diff確認
+  risk_level: low
+  source: catalog
+- name: dead-code-removal
+  category: quality
+  path: quality/dead-code-removal
+  description: 未使用コード・依存・ファイルを特定して安全に削除
+  triggers:
+  - デッドコード
+  - 未使用
+  - 不要コード
+  - vulture
+  - knip
+  risk_level: medium
+  source: catalog
+- name: independent-review
+  category: quality
+  path: quality/independent-review
+  description: 実装者と別視点・別コンテキストでの独立検証
+  triggers:
+  - 独立レビュー
+  - セカンドオピニオン
+  - 別視点
+  - クロスチェック
+  risk_level: low
+  source: catalog
+- name: lint-typecheck
+  category: quality
+  path: quality/lint-typecheck
+  description: lint と型チェックを実行して指摘を解消
+  triggers:
+  - lint
+  - 型チェック
+  - ruff
+  - mypy
+  - eslint
+  - tsc
+  risk_level: low
+  source: catalog
+- name: memory-leak-analysis
+  category: quality
+  path: quality/memory-leak-analysis
+  description: メモリリーク・肥大化の調査と原因特定
+  triggers:
+  - メモリリーク
+  - メモリ増加
+  - OOM
+  - tracemalloc
+  risk_level: low
+  source: catalog
+- name: overengineering-detection
+  category: quality
+  path: quality/overengineering-detection
+  description: 過剰設計・不要な複雑性の兆候を検出して指摘
+  triggers:
+  - 過剰設計
+  - 複雑
+  - オーバーエンジニアリング
+  - 抽象化しすぎ
+  risk_level: low
+  source: catalog
+- name: performance-audit
+  category: quality
+  path: quality/performance-audit
+  description: プロファイルとベンチで性能ボトルネックを特定
+  triggers:
+  - 性能
+  - パフォーマンス
+  - 遅い
+  - プロファイル
+  - ボトルネック
+  risk_level: low
+  source: catalog
+- name: regression-testing
+  category: quality
+  path: quality/regression-testing
+  description: 変更で既存機能が壊れていないかを回帰テストで確認
+  triggers:
+  - 回帰テスト
+  - リグレッション
+  - 既存テスト
+  - 壊れていないか
+  risk_level: low
+  source: catalog
+- name: release-readiness
+  category: quality
+  path: quality/release-readiness
+  description: リリース前チェック（テスト・版・変更履歴・成果物）
+  triggers:
+  - リリース準備
+  - リリース前
+  - 出荷判定
+  - リリースチェック
+  risk_level: medium
+  source: catalog
+- name: simplicity-yagni
+  category: quality
+  path: quality/simplicity-yagni
+  description: YAGNI 観点で不要な機能・抽象を排して最小実装にする
+  triggers:
+  - YAGNI
+  - シンプル
+  - 最小実装
+  - 過剰機能
+  risk_level: low
+  source: catalog
+- name: spec-compliance
+  category: quality
+  path: quality/spec-compliance
+  description: 実装が仕様・要件を満たすかを項目単位で照合
+  triggers:
+  - 仕様適合
+  - 要件確認
+  - 受け入れ基準
+  - spec
+  risk_level: low
+  source: catalog
+- name: static-analysis
+  category: quality
+  path: quality/static-analysis
+  description: 静的解析でバグ・脆弱性・危険パターンを検出
+  triggers:
+  - 静的解析
+  - セキュリティスキャン
+  - bandit
+  - semgrep
+  risk_level: low
+  source: catalog
+- name: test-coverage
+  category: quality
+  path: quality/test-coverage
+  description: テストカバレッジを計測し未検証領域を特定
+  triggers:
+  - カバレッジ
+  - coverage
+  - テスト網羅
+  - 未テスト
+  risk_level: low
+  source: catalog
+- name: verification
+  category: quality
+  path: quality/verification
+  description: 完了宣言前の検証原則。実行証拠なしに完了と言わない
+  triggers:
+  - 完了
+  - できました
+  - 直しました
+  - 実装完了の報告前
+  risk_level: low
+  source: hand-written
+- name: browser-automation
+  category: research
+  path: research/browser-automation
+  description: ブラウザ操作で Web ページを閲覧・操作する
+  triggers:
+  - ブラウザ操作
+  - クリック
+  - スクレイピング
+  - ログイン後
+  risk_level: medium
+  source: catalog
+- name: citation-management
+  category: research
+  path: research/citation-management
+  description: 出典を一貫した形式で記録・管理する
+  triggers:
+  - 引用
+  - 出典管理
+  - 参考文献
+  - citation
+  - bibtex
+  risk_level: low
+  source: catalog
+- name: community-research
+  category: research
+  path: research/community-research
+  description: Reddit・HN・フォーラムの評判と実体験を調べる
+  triggers:
+  - 評判
+  - Reddit
+  - Hacker News
+  - フォーラム
+  - 口コミ
+  risk_level: low
+  source: catalog
+- name: competitive-research
+  category: research
+  path: research/competitive-research
+  description: 競合製品・サービスの機能と価格を比較調査する
+  triggers:
+  - 競合調査
+  - 比較
+  - 競合分析
+  - alternatives
+  risk_level: low
+  source: catalog
+- name: deep-research
+  category: research
+  path: research/deep-research
+  description: 多段階の調査で網羅的なレポートを作る
+  triggers:
+  - 徹底調査
+  - deep research
+  - 詳細レポート
+  - 比較調査
+  risk_level: low
+  source: catalog
+- name: download-management
+  category: research
+  path: research/download-management
+  description: ファイルを安全にダウンロードし検証・整理する
+  triggers:
+  - ダウンロード
+  - 取得
+  - download
+  - ファイル保存
+  risk_level: medium
+  source: catalog
+- name: fact-checking
+  category: research
+  path: research/fact-checking
+  description: 主張の真偽を証拠に基づき判定する
+  triggers:
+  - ファクトチェック
+  - 真偽
+  - 本当に
+  - 裏取り
+  risk_level: low
+  source: catalog
+- name: form-interaction
+  category: research
+  path: research/form-interaction
+  description: Web フォームを入力し検索・申請操作を行う
+  triggers:
+  - フォーム入力
+  - 申込
+  - 入力して
+  - submit
+  risk_level: high
+  source: catalog
+- name: github-research
+  category: research
+  path: research/github-research
+  description: gh CLI で GitHub のリポジトリ・Issue・PR を調査する
+  triggers:
+  - GitHub
+  - issue
+  - リポジトリ調査
+  - gh
+  risk_level: low
+  source: catalog
+- name: market-research
+  category: research
+  path: research/market-research
+  description: 市場規模・動向・統計を出典付きで調査する
+  triggers:
+  - 市場調査
+  - 市場規模
+  - 動向
+  - 統計
+  risk_level: low
+  source: catalog
+- name: primary-source-first
+  category: research
+  path: research/primary-source-first
+  description: 一次情報(公式・原典)を最優先で参照する
+  triggers:
+  - 公式
+  - 一次情報
+  - 原典
+  - official docs
+  risk_level: low
+  source: catalog
+- name: product-research
+  category: research
+  path: research/product-research
+  description: 製品・ツールの仕様・評価・導入可否を調べる
+  triggers:
+  - 製品調査
+  - ツール選定
+  - おすすめ
+  - 導入検討
+  risk_level: low
+  source: catalog
+- name: site-navigation
+  category: research
+  path: research/site-navigation
+  description: サイト構造を辿り目的のページ・情報へ到達する
+  triggers:
+  - サイト内検索
+  - 目的のページ
+  - ナビゲーション
+  - sitemap
+  risk_level: low
+  source: catalog
+- name: source-verification
+  category: research
+  path: research/source-verification
+  description: 情報源の信頼性と日付・一次性を検証する
+  triggers:
+  - 出典確認
+  - 信頼性
+  - ソース検証
+  - 本当か
+  risk_level: low
+  source: catalog
+- name: technical-docs-research
+  category: research
+  path: research/technical-docs-research
+  description: 技術ドキュメント・API 仕様を調べて使い方を確定する
+  triggers:
+  - ドキュメント
+  - API 仕様
+  - リファレンス
+  - docs
+  risk_level: low
+  source: catalog
+- name: web-archiving
+  category: research
+  path: research/web-archiving
+  description: Wayback 等で Web ページを保存・過去版を参照する
+  triggers:
+  - アーカイブ
+  - Wayback
+  - 過去版
+  - 保存
+  - リンク切れ
+  risk_level: low
+  source: catalog
+- name: web-research
+  category: research
+  path: research/web-research
+  description: Web 検索で一次情報を集め要点を整理する
+  triggers:
+  - 調べて
+  - 検索
+  - web search
+  - 最新情報
+  risk_level: low
+  source: catalog
+- name: x-search
+  category: research
+  path: research/x-search
+  description: X(Twitter) 上の言及・反応を検索して要約する
+  triggers:
+  - X 検索
+  - Twitter
+  - ツイート
+  - 反応
+  risk_level: low
+  source: catalog
+- name: dependency-audit
+  category: security
+  path: security/dependency-audit
+  description: 依存パッケージの既知脆弱性・ライセンス監査
+  triggers:
+  - 依存関係
+  - npm audit
+  - pip-audit
+  - CVE
+  - 脆弱性スキャン
+  risk_level: low
+  source: catalog
+- name: network-security-review
+  category: security
+  path: security/network-security-review
+  description: 公開ポート・FW・TLS 設定のセキュリティ確認
+  triggers:
+  - ポート開放
+  - ファイアウォール
+  - TLS
+  - 待受
+  - 外部公開
+  risk_level: medium
+  source: catalog
+- name: permission-audit
+  category: security
+  path: security/permission-audit
+  description: ファイル・サービス・ユーザー権限の過剰付与の監査
+  triggers:
+  - 権限監査
+  - 過剰権限
+  - ACL 監査
+  - 管理者
+  - 最小権限
+  risk_level: low
+  source: catalog
+- name: secret-scan
+  category: security
+  path: security/secret-scan
+  description: リポジトリ内の API キー・認証情報の検出
+  triggers:
+  - シークレット
+  - APIキー
+  - 漏洩
+  - gitleaks
+  - トークン
+  risk_level: medium
+  source: catalog
+- name: security-review
+  category: security
+  path: security/security-review
+  description: コード・設定の脆弱性レビューと是正案の提示
+  triggers:
+  - セキュリティレビュー
+  - 脆弱性
+  - OWASP
+  - 監査
+  risk_level: low
+  source: catalog
+- name: supply-chain-review
+  category: security
+  path: security/supply-chain-review
+  description: 依存・ビルド・配布物のサプライチェーンリスク確認
+  triggers:
+  - サプライチェーン
+  - typosquatting
+  - 署名
+  - postinstall
+  - 配布物
+  risk_level: medium
+  source: catalog
+- name: archive-compression
+  category: system
+  path: system/archive-compression
+  description: zip/7z/tar の圧縮・展開
+  triggers:
+  - zip
+  - 7z
+  - tar
+  - 圧縮
+  - 解凍
+  risk_level: low
+  source: catalog
+- name: backup-restore
+  category: system
+  path: system/backup-restore
+  description: ファイル/設定のバックアップと復元
+  triggers:
+  - バックアップ
+  - 復元
+  - リストア
+  - 履歴
+  - スナップショット
+  risk_level: medium
+  source: catalog
+- name: cmd
+  category: system
+  path: system/cmd
+  description: cmd.exe とバッチファイルの実行・変換
+  triggers:
+  - cmd
+  - バッチ
+  - .bat
+  - cmd /c
+  risk_level: low
+  source: catalog
+- name: docker
+  category: system
+  path: system/docker
+  description: Docker コンテナ/イメージの実行と管理
+  triggers:
+  - docker
+  - コンテナ
+  - イメージ
+  - Dockerfile
+  risk_level: medium
+  source: catalog
+- name: docker-compose
+  category: system
+  path: system/docker-compose
+  description: docker compose による複数コンテナ構成の管理
+  triggers:
+  - docker compose
+  - compose.yaml
+  - マルチコンテナ
+  risk_level: medium
+  source: catalog
+- name: environment-variables
+  category: system
+  path: system/environment-variables
+  description: 環境変数と PATH の確認・設定
+  triggers:
+  - 環境変数
+  - PATH
+  - setx
+  - $env
+  risk_level: medium
+  source: catalog
+- name: filesystem
+  category: system
+  path: system/filesystem
+  description: ファイル・フォルダの検索・コピー・移動・整理
+  triggers:
+  - ファイル検索
+  - コピー
+  - 移動
+  - フォルダ
+  - 整理
+  risk_level: medium
+  source: catalog
+- name: gpu-nvidia
+  category: system
+  path: system/gpu-nvidia
+  description: NVIDIA GPU の状態確認とドライバ/CUDA 診断
+  triggers:
+  - NVIDIA
+  - GPU
+  - nvidia-smi
+  - CUDA
+  - VRAM
+  risk_level: low
+  source: catalog
+- name: hardware-diagnostics
+  category: system
+  path: system/hardware-diagnostics
+  description: ハードウェア情報の取得と障害診断
+  triggers:
+  - ハードウェア
+  - スペック
+  - デバイス
+  - ドライバ
+  - SMART
+  risk_level: low
+  source: catalog
+- name: http-api
+  category: system
+  path: system/http-api
+  description: HTTP API の呼び出し・検証
+  triggers:
+  - API
+  - curl
+  - REST
+  - Invoke-RestMethod
+  - HTTP
+  risk_level: medium
+  source: catalog
+- name: logs-event-viewer
+  category: system
+  path: system/logs-event-viewer
+  description: イベントログとアプリログの調査
+  triggers:
+  - イベントログ
+  - Get-WinEvent
+  - ログ調査
+  - エラー原因
+  risk_level: low
+  source: catalog
+- name: network-diagnostics
+  category: system
+  path: system/network-diagnostics
+  description: 接続・DNS・ポート・経路の診断
+  triggers:
+  - ネットワーク
+  - ping
+  - DNS
+  - 接続できない
+  - ポート
+  risk_level: low
+  source: catalog
+- name: package-management
+  category: system
+  path: system/package-management
+  description: winget/choco/scoop/pip/npm によるパッケージ管理
+  triggers:
+  - winget
+  - choco
+  - scoop
+  - パッケージ
+  - インストール済み
+  risk_level: medium
+  source: catalog
+- name: permissions-acl
+  category: system
+  path: system/permissions-acl
+  description: ファイル/フォルダの ACL・所有者・権限の確認と変更
+  triggers:
+  - 権限
+  - ACL
+  - icacls
+  - アクセス拒否
+  - 所有者
+  risk_level: high
+  source: catalog
+- name: powershell
+  category: system
+  path: system/powershell
+  description: PowerShell 5.1/7 のコマンド実行とパイプライン処理
+  triggers:
+  - PowerShell
+  - pwsh
+  - Get-
+  - Set-
+  - ps1
+  risk_level: medium
+  source: catalog
+- name: process-management
+  category: system
+  path: system/process-management
+  description: プロセスの一覧・監視・起動・停止
+  triggers:
+  - プロセス
+  - kill
+  - タスクマネージャ
+  - 起動中
+  - ハング
+  risk_level: medium
+  source: catalog
+- name: registry
+  category: system
+  path: system/registry
+  description: レジストリの参照・バックアップ・変更
+  triggers:
+  - レジストリ
+  - regedit
+  - HKLM
+  - HKCU
+  - reg.exe
+  risk_level: high
+  source: catalog
+- name: remote-desktop-assist
+  category: system
+  path: system/remote-desktop-assist
+  description: リモートデスクトップ接続と画面共有の支援
+  triggers:
+  - RDP
+  - リモートデスクトップ
+  - mstsc
+  - 画面共有
+  risk_level: high
+  source: catalog
+- name: remote-execution
+  category: system
+  path: system/remote-execution
+  description: リモートホストでのコマンド実行(WinRM/SSH)
+  triggers:
+  - リモート実行
+  - Invoke-Command
+  - WinRM
+  - PSSession
+  risk_level: high
+  source: catalog
+- name: scheduled-tasks
+  category: system
+  path: system/scheduled-tasks
+  description: タスクスケジューラの作成・確認・削除
+  triggers:
+  - タスクスケジューラ
+  - 定期実行
+  - schtasks
+  - 自動実行
+  risk_level: medium
+  source: catalog
+- name: service-management
+  category: system
+  path: system/service-management
+  description: Windows サービスの状態確認・起動停止・設定
+  triggers:
+  - サービス
+  - Get-Service
+  - sc.exe
+  - 自動起動
+  risk_level: high
+  source: catalog
+- name: software-installation
+  category: system
+  path: system/software-installation
+  description: インストーラ(msi/exe/msix)の安全な導入とアンインストール
+  triggers:
+  - インストール
+  - msi
+  - setup.exe
+  - アンインストール
+  risk_level: high
+  source: catalog
+- name: ssh
+  category: system
+  path: system/ssh
+  description: OpenSSH による接続・鍵管理・ポート転送
+  triggers:
+  - ssh
+  - scp
+  - sftp
+  - 鍵
+  - ssh-keygen
+  risk_level: high
+  source: catalog
+- name: storage-management
+  category: system
+  path: system/storage-management
+  description: ディスク・パーティション・容量の確認と整理
+  triggers:
+  - ディスク
+  - 容量
+  - パーティション
+  - ドライブ
+  - 空き
+  risk_level: high
+  source: catalog
+- name: system-monitoring
+  category: system
+  path: system/system-monitoring
+  description: CPU/メモリ/ディスク/ネットワーク使用状況の監視
+  triggers:
+  - 負荷
+  - CPU
+  - メモリ
+  - 重い
+  - パフォーマンス
+  risk_level: low
+  source: catalog
+- name: windows-control
+  category: system
+  path: system/windows-control
+  description: Windows 11 の設定・ウィンドウ・アプリ操作を自動化する
+  triggers:
+  - Windows 操作
+  - ウィンドウ
+  - 設定変更
+  - アプリ起動
+  risk_level: medium
+  source: catalog
+- name: wsl-linux
+  category: system
+  path: system/wsl-linux
+  description: WSL2 の Linux 環境操作とファイル連携
+  triggers:
+  - WSL
+  - wsl.exe
+  - Ubuntu
+  - Linux
+  risk_level: medium
+  source: catalog
+- name: api-design
+  category: web-backend
+  path: web-backend/api-design
+  description: REST/OpenAPI の API 仕様設計とバージョニング
+  triggers:
+  - API 設計
+  - OpenAPI
+  - REST
+  - エンドポイント設計
+  - スキーマ
+  - バージョン
+  risk_level: low
+  source: catalog
+- name: auth
+  category: web-backend
+  path: web-backend/auth
+  description: 認証・認可（JWT/OAuth2/セッション）の安全な実装
+  triggers:
+  - 認証
+  - 認可
+  - ログイン
+  - JWT
+  - OAuth
+  - パスワード
+  - セッション
+  risk_level: high
+  source: catalog
+- name: backend-api
+  category: web-backend
+  path: web-backend/backend-api
+  description: REST/HTTP バックエンド API の実装とテスト
+  triggers:
+  - API 実装
+  - エンドポイント
+  - FastAPI
+  - Express
+  - ASP.NET
+  - バックエンド
+  risk_level: medium
+  source: catalog
+- name: database-design
+  category: web-backend
+  path: web-backend/database-design
+  description: スキーマ設計・正規化・インデックス・マイグレーション
+  triggers:
+  - DB 設計
+  - スキーマ
+  - ER 図
+  - 正規化
+  - マイグレーション
+  - インデックス
+  risk_level: medium
+  source: catalog
+- name: frontend
+  category: web-backend
+  path: web-backend/frontend
+  description: フロントエンド実装・UI 確認・ビルド全般
+  triggers:
+  - フロントエンド
+  - UI
+  - Vite
+  - レスポンシブ
+  - 画面実装
+  risk_level: low
+  source: catalog
+- name: html-css
+  category: web-backend
+  path: web-backend/html-css
+  description: セマンティック HTML と CSS（Flex/Grid）の実装・修正
+  triggers:
+  - HTML
+  - CSS
+  - Flexbox
+  - Grid
+  - レイアウト崩れ
+  - スタイル
+  risk_level: low
+  source: catalog
+- name: mysql
+  category: web-backend
+  path: web-backend/mysql
+  description: MySQL の接続・クエリ・チューニング・バックアップ
+  triggers:
+  - MySQL
+  - MariaDB
+  - mysql.exe
+  - mysqldump
+  - スロークエリ
+  risk_level: high
+  source: catalog
+- name: nginx
+  category: web-backend
+  path: web-backend/nginx
+  description: nginx のリバースプロキシ・静的配信・設定検証
+  triggers:
+  - nginx
+  - リバースプロキシ
+  - SSL
+  - 設定
+  - upstream
+  - 502
+  risk_level: high
+  source: catalog
+- name: nodejs
+  category: web-backend
+  path: web-backend/nodejs
+  description: Node.js アプリ・スクリプトの開発と実行
+  triggers:
+  - Node.js
+  - npm
+  - Express
+  - package.json
+  - TypeScript
+  - node
+  risk_level: low
+  source: catalog
+- name: postgresql
+  category: web-backend
+  path: web-backend/postgresql
+  description: PostgreSQL の接続・クエリ・チューニング・バックアップ
+  triggers:
+  - PostgreSQL
+  - Postgres
+  - psql
+  - pg_dump
+  - EXPLAIN ANALYZE
+  risk_level: high
+  source: catalog
+- name: react
+  category: web-backend
+  path: web-backend/react
+  description: React コンポーネント・フック・状態管理の実装
+  triggers:
+  - React
+  - useState
+  - useEffect
+  - JSX
+  - Next.js
+  - コンポーネント
+  risk_level: low
+  source: catalog
+- name: redis
+  category: web-backend
+  path: web-backend/redis
+  description: Redis のキャッシュ・キュー・セッション運用とデバッグ
+  triggers:
+  - Redis
+  - キャッシュ
+  - redis-cli
+  - TTL
+  - pub/sub
+  - セッション
+  risk_level: medium
+  source: catalog
+- name: websocket
+  category: web-backend
+  path: web-backend/websocket
+  description: WebSocket 双方向通信の実装・接続デバッグ
+  triggers:
+  - WebSocket
+  - ws
+  - socket.io
+  - リアルタイム
+  - 接続切れ
+  - ping
+  risk_level: medium
+  source: catalog
+- name: audit
+  category: workflow
+  path: workflow/audit
+  description: コード/依存/権限/Secret/設定を横断監査し優先順に報告
+  triggers:
+  - /audit
+  - 監査
+  - セキュリティチェック
+  - 依存の脆弱性
+  - リリース前チェック
+  risk_level: low
+  source: hand-written
+- name: benchmark
+  category: workflow
+  path: workflow/benchmark
+  description: 速度/品質ベンチを再現可能に計測し記録（モデル含む）
+  triggers:
+  - /benchmark
+  - 速度を測って
+  - tok/s
+  - 性能比較
+  - どっちが速い
+  risk_level: low
+  source: hand-written
+- name: checkpoint
+  category: workflow
+  path: workflow/checkpoint
+  description: 作業状態を .kiridev/checkpoint.md と git/snapshot に保存
+  triggers:
+  - /checkpoint
+  - 区切り
+  - 長時間作業の途中
+  - 危険な変更の前
+  risk_level: low
+  source: hand-written
+- name: commit
+  category: workflow
+  path: workflow/commit
+  description: 全変更を履歴の書式に合わせて 1 コミット
+  triggers:
+  - /commit
+  - コミットして
+  risk_level: low
+  source: ported from qwen-skills/commit
+- name: compus
+  category: workflow
+  path: workflow/compus
+  description: commit してから push（/commit + /push）
+  triggers:
+  - /compus
+  risk_level: medium
+  source: ported from qwen-skills/compus
+- name: diagnose
+  category: workflow
+  path: workflow/diagnose
+  description: 再現→証拠→仮説→計測→根本原因→修正→回帰テスト→検証
+  triggers:
+  - /diagnose
+  - バグ
+  - 落ちる
+  - 遅い
+  - 原因を調べて
+  - 再現する
+  risk_level: low
+  source: hand-written
+- name: doctor
+  category: workflow
+  path: workflow/doctor
+  description: KiriDev/Hermes/Strata 環境を診断し安全な問題は自動修復
+  triggers:
+  - /doctor
+  - 環境がおかしい
+  - Strata が動かない
+  - Hermes の設定確認
+  - 動作環境チェック
+  risk_level: medium
+  source: hand-written
+- name: feature
+  category: workflow
+  path: workflow/feature
+  description: 新機能を要件→設計→タスク→実装→検証まで進める入口
+  triggers:
+  - /feature
+  - 機能を追加して
+  - 新機能
+  risk_level: medium
+  source: ported from qwen-skills/feature
+- name: handoff-sonnet
+  category: workflow
+  path: workflow/handoff-sonnet
+  description: 設計まで行い Claude Sonnet コンソールへ実装を引き継ぐ
+  triggers:
+  - /handoff-sonnet
+  - Sonnet に引き継ぎ
+  risk_level: medium
+  source: ported from qwen-skills/handoff-sonnet
+- name: i-have-adhd
+  category: workflow
+  path: workflow/i-have-adhd
+  description: ADHD 向け出力整形モード（次の行動を先頭に）
+  triggers:
+  - /i-have-adhd
+  risk_level: low
+  source: external mirror ayghri/i-have-adhd (see UPSTREAM.md)
+- name: kiri-handoff
+  category: workflow
+  path: workflow/kiri-handoff
+  description: 別PC/別Session向けに作業状態を記録し commit/push（/handoff 相当）
+  triggers:
+  - /kiri-handoff
+  - 引き継ぎ
+  - 別PCで続ける
+  - 作業を保存して終わる
+  risk_level: medium
+  source: hand-written
+- name: overnight
+  category: workflow
+  path: workflow/overnight
+  description: 指定時間の自律作業（checkpoint/復旧/最終報告つき）
+  triggers:
+  - /overnight
+  - 寝てる間に
+  - 不在の間
+  risk_level: medium
+  source: ported from qwen-skills/overnight
+- name: overnight-goal
+  category: workflow
+  path: workflow/overnight-goal
+  description: ゴール達成まで自律作業（/overnight のゴール版）
+  triggers:
+  - /overnight-goal
+  - 達成するまで
+  risk_level: medium
+  source: ported from qwen-skills/overnight-goal
+- name: pickup
+  category: workflow
+  path: workflow/pickup
+  description: 引き継ぎ/Checkpoint/git から現在地を復元し作業を再開
+  triggers:
+  - /pickup
+  - 再開
+  - 続きから
+  risk_level: low
+  source: ported from qwen-skills/pickup
+- name: priorities
+  category: workflow
+  path: workflow/priorities
+  description: 未完了タスクを優先度順に表示するだけ（着手しない）
+  triggers:
+  - /priorities
+  - 優先順位
+  - タスク一覧
+  risk_level: low
+  source: ported from qwen-skills/priorities
+- name: pull
+  category: workflow
+  path: workflow/pull
+  description: 現在ブランチを fast-forward のみで更新
+  triggers:
+  - /pull
+  - 最新を取得
+  risk_level: low
+  source: ported from qwen-skills/pull
+- name: push
+  category: workflow
+  path: workflow/push
+  description: 現在ブランチを push（force 禁止）
+  triggers:
+  - /push
+  risk_level: medium
+  source: ported from qwen-skills/push
+- name: research
+  category: workflow
+  path: workflow/research
+  description: 一次情報優先で調査し、出典つきで結論を出す（/research）
+  triggers:
+  - /research
+  - 調べて
+  - 比較して
+  - 最新情報
+  - 公式ドキュメント
+  risk_level: low
+  source: hand-written
+- name: retro
+  category: workflow
+  path: workflow/retro
+  description: 作業の振り返りから Skill/Routing/Fallback 改善候補を出す
+  triggers:
+  - /retro
+  - 振り返り
+  - 何がうまくいかなかった
+  - 改善点
+  risk_level: low
+  source: hand-written
+- name: skill-create
+  category: workflow
+  path: workflow/skill-create
+  description: KiriDev 形式の新 Skill を作成し index 更新と同期まで行う
+  triggers:
+  - /skill-create
+  - Skill を作って
+  - この手順を Skill 化
+  - 繰り返し作業の定型化
+  risk_level: low
+  source: hand-written
+- name: speckit-autonomous
+  category: workflow
+  path: workflow/speckit-autonomous
+  description: 質問せず仕様作成から実装・検証まで自律実行
+  triggers:
+  - /speckit-autonomous
+  - 自律着手
+  - 質問せず最後まで
+  risk_level: medium
+  source: ported from qwen-skills/speckit-autonomous
+- name: speckit-require
+  category: workflow
+  path: workflow/speckit-require
+  description: Spec Kit で spec/plan/tasks を作成・追記（実装しない）
+  triggers:
+  - /speckit-require
+  - 要件定義
+  - 仕様書
+  - SPEC-
+  risk_level: low
+  source: ported from qwen-skills/speckit-require
+- name: speckit-update
+  category: workflow
+  path: workflow/speckit-update
+  description: Spec Kit の上流更新をローカル規約を保って取り込む
+  triggers:
+  - /speckit-update
+  - Spec Kit 更新
+  risk_level: medium
+  source: ported from qwen-skills/speckit-update
+- name: verify
+  category: workflow
+  path: workflow/verify
+  description: Build/Test/Lint/型/実行/差分/仕様準拠を検証して完了判定
+  triggers:
+  - /verify
+  - 完了前
+  - 実装した
+  - 動くか確認
+  - テストして
+  risk_level: low
+  source: hand-written
+reused_hermes_features:
+- spec: Skill Registry / Skill Index
+  hermes: skills ディレクトリ + system prompt の skills index（skills_list / skill_view の progressive disclosure）
+- spec: /review
+  hermes: built-in /review（独立 reviewer subagent）。観点は quality/code-review Skill
+- spec: /rollback, rollback
+  hermes: built-in /rollback + /snapshot（filesystem checkpoints）
+- spec: /worktree, git-worktree
+  hermes: built-in /worktree（CLI）
+- spec: /handoff（別PC引き継ぎ）
+  hermes: built-in /handoff は messaging platform への引き継ぎで別物 → KiriDev 版は /kiri-handoff
+- spec: pdf
+  hermes: bundled skill pdf（productivity/pdf）
+- spec: systematic debugging / tdd 補助
+  hermes: bundled skills systematic-debugging, test-driven-development
+- spec: Claude Code / Codex escalation
+  hermes: bundled skills claude-code, codex（CLI へ委譲）+ /model provider 切替 + fallback_providers
+- spec: Tool Router（MCP/plugin tool の遅延公開）
+  hermes: Tool Search（tool_search/tool_describe/tool_call）+ toolsets
+- spec: Model Fallback（provider 障害時）
+  hermes: config.yaml fallback_providers（turn 単位で自動切替）
+- spec: Permission Policy 実行層
+  hermes: approvals.mode=smart + approvals.deny + smart_policy, --yolo
+- spec: Context Overflow
+  hermes: compression（自動要約）+ /compress + delegate_task subagent
+- spec: Self Improvement
+  hermes: background review / curator / /refine（skill_manage で候補 patch）
+- spec: cron / overnight 継続
+  hermes: cronjob tool / hermes cron, /goal, /heartbeat
+- spec: Logging / State (SQLite)
+  hermes: '%LOCALAPPDATA%\hermes\state.db（sessions, tool calls）+ kanban.db。KiriDev 追加分は .kiridev/state.db'
+- spec: Skill 作成
+  hermes: skill_manage tool, /learn, bundled hermes-agent-skill-authoring

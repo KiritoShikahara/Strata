@@ -53,9 +53,14 @@
 - 複数環境（上の A / B / C）で動かすため、**全モデルを動かす可能性がある**。モデル名や設定は環境ごとに差し替えられる形にする。
 - 優先順位: 安定性 > 速度 > 軽さ。ハーネスの完成度（賢く使えること）も重視する。
 
-## Qwen Code の接続（未確認・未設定）
+## Qwen Code の接続
 
-1. Strata を起動し、URL とポートを確認する
-2. Qwen Code の `OPENAI_BASE_URL` / `OPENAI_MODEL` を Strata に向ける
-3. 環境ごとに `OPENAI_MODEL` だけ差し替える
-4. 同じ課題を opencode でも試し、ツール呼び出し成功率と初回応答秒数を比較する
+`strata-qwen.bat` が次の値を設定して Qwen Code を起動する（環境 B で確認済み）。
+
+- `OPENAI_BASE_URL=http://127.0.0.1:8080/v1`（ヘルスチェック: `http://127.0.0.1:8080/health`）
+- `OPENAI_API_KEY=strata`
+- `OPENAI_MODEL=strata`（固定。実際のモデルは `C:\Strata\selected-model.txt` で切り替える）
+
+未確認:
+
+1. 同じ課題を opencode でも試し、ツール呼び出し成功率と初回応答秒数を比較する

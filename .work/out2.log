@@ -1,0 +1,17 @@
+`skills/catalog/` に5ファイルを書き、5つとも YAML としてパースできました。件数はリスト通りで、全エントリに全フィールドを入れています。
+
+| ファイル | スキル数 |
+|---|---|
+| `development.yaml` | 13 |
+| `game-development.yaml` | 15 |
+| `web-backend.yaml` | 13 |
+| `creative.yaml` | 6 |
+| `data.yaml` | 11 |
+
+- **確認したこと:** 指定の Python で `yaml.safe_load` を通し、`skills` の件数を数えました。
+- **確認していないこと:** `d` が60文字以内かは機械では検査していません。全て短い一文なので問題ないはずです。`scripts/kiridev_skills.py build` も実行していません。
+- **`debugging`:** 手順は Reproduce から Verify までの順序通りに入れ、推測だけの修正は `no` で禁止しています。
+- **`git`:** 手順は status/diff/log/branch/stash/worktree の順で、force-push と `reset --hard` は `no` で承認制にしています。
+- **ゲーム系:** Unity/Unreal Editor は Docker で動かさずネイティブ Windows で動かす旨を、各スキルの `no` に入れています。
+- **他のファイル:** 変更していません。
+[worker sonnet] turns=8 tokens=149064 cost=$0.5141

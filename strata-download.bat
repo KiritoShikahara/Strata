@@ -2,11 +2,11 @@
 rem Download (or switch to) a Strata model. Run it any time to add another model.
 rem   strata-download.bat          pick from a menu
 rem   strata-download.bat 3        pick by number (no menu)
-rem The model you pick becomes the one strata-qwen.bat starts (saved in %STRATA_DIR%\selected-model.txt).
-rem Strata location: set STRATA_DIR before running to override (default C:\Strata).
+rem The model you pick becomes the one strata-hermes.bat starts (saved in %STRATA_DIR%\selected-model.txt).
+rem Strata location: set STRATA_DIR before running to override (default D:\Strata).
 setlocal
 title Strata model download
-if not defined STRATA_DIR set "STRATA_DIR=C:\Strata"
+if not defined STRATA_DIR set "STRATA_DIR=D:\Strata"
 if not exist "%STRATA_DIR%\START-HERE.bat" (
   echo Strata not found at %STRATA_DIR%. Run install-strata-qwen.bat first.
   pause
@@ -64,6 +64,6 @@ if errorlevel 1 powershell -NoProfile -Command "(Get-Content -Raw '%STRATA_DIR%\
 
 > "%STRATA_DIR%\selected-model.txt" echo %TAG%
 echo.
-echo Done. strata-qwen.bat now starts: %FAMILY% %SIZE%
+echo Done. strata-hermes.bat now starts: %FAMILY% %SIZE%
 if "%~1"=="" pause
 exit /b 0

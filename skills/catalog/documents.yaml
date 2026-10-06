@@ -1,0 +1,350 @@
+category: documents
+defaults:
+  tools: [terminal, read_file]
+  fallback: ['tool-missing: Get-Command/where → winget/pip/npm/choco 導入 → portable 版 → Docker/WSL → 代替ツール']
+  risk: low
+skills:
+  - name: word-docx
+    d: Word(.docx) の読取・解析（python-docx→OOXML→COM の順）
+    tr: [docx, Word, ワード文書, python-docx]
+    tools: [terminal, read_file]
+    opt: [vision_analyze, write_file]
+    deps: [python-docx, pandoc]
+    steps:
+      - 'python -I -c "import docx;d=docx.Document(r''C:\path\a.docx'');print([p.text for p in d.paragraphs])" で本文・表を取得'
+      - '画像・図形・SmartArt が含まれるなら office-ooxml-inspection で word/document.xml, word/media, word/_rels を直接確認'
+      - '埋め込み画像は embedded-media-extraction で取り出し vision_analyze で内容把握'
+      - 'まだ不足なら office-rendering で PDF 化して画像として見る'
+      - '抽出結果を見出し・表・図の単位で整理して報告'
+    verify: '段落数・表数・画像数 (word/media 件数) が抽出結果と一致することを確認'
+    fb:
+      - 'python-docx 失敗 → 拡張子を .zip にして Expand-Archive し word/document.xml を解析'
+      - 'COM (Word.Application) で ExportAsFixedFormat により PDF 化 → pdftoppm → vision'
+      - 'soffice --headless --convert-to pdf / pandoc a.docx -t markdown'
+      - '最後に ocr-fallback（OCR は最初の手段にしない）'
+    rel: [universal-document-ingestion, office-ooxml-inspection, office-rendering, document-structure-analysis, fallback]
+    "no": ['「画像が含まれるので読めない」と回答しない', '元ファイルを上書きしない（コピーで作業）', '機密文書内容を外部サービスへ送信しない']
+    risk: low
+  - name: powerpoint-pptx
+    d: PowerPoint(.pptx) のスライド・ノート・図の解析
+    tr: [pptx, PowerPoint, スライド, python-pptx]
+    tools: [terminal, read_file]
+    opt: [vision_analyze]
+    deps: [python-pptx]
+    steps:
+      - 'python -I で pptx.Presentation(path) を開き slide.shapes の text_frame を列挙'
+      - 'slide.notes_slide.notes_text_frame.text でノートを取得（speaker-notes-analysis）'
+      - 'ppt/media, ppt/charts, ppt/diagrams を unzip で確認し画像・グラフ・SmartArt を把握'
+      - 'office-rendering で PDF→PNG 化し各スライドを vision_analyze'
+      - 'スライド番号付きで要約を出力'
+    verify: 'len(prs.slides) と出力したスライド数が一致、画像/図のあるスライドに言及がある'
+    fb:
+      - 'python-pptx 失敗 → ppt/slides/slideN.xml を直接解析'
+      - 'COM: New-Object -ComObject PowerPoint.Application で SaveAs PDF (ppSaveAsPDF=32)'
+      - 'soffice --headless --convert-to pdf → pdftoppm -r 100 -png'
+      - 'ocr-fallback (tesseract) は最後'
+    rel: [universal-document-ingestion, speaker-notes-analysis, smartart-analysis, chart-analysis, office-rendering]
+    "no": ['画像があるから読めないと言わない', '元ファイル上書き禁止', 'スライド内容の外部送信禁止']
+    risk: low
+  - name: excel-xlsx
+    d: Excel(.xlsx) のシート・数式・グラフ・表の読取
+    tr: [xlsx, Excel, エクセル, openpyxl, シート]
+    tools: [terminal, read_file]
+    opt: [execute_code]
+    deps: [openpyxl, pandas]
+    steps:
+      - 'python -I -c "import openpyxl;wb=openpyxl.load_workbook(p,data_only=False);print(wb.sheetnames)" で構成確認'
+      - '数式は data_only=False、計算値は data_only=True で二重に読む'
+      - '結合セル・非表示シート・名前定義・条件付き書式を確認'
+      - 'xl/charts, xl/drawings, xl/media を unzip で確認（chart-analysis）'
+      - '大表は pandas.read_excel(sheet_name=None) で要約'
+    verify: '各シートの行数・列数と抽出結果が一致、数式セル数が報告に含まれる'
+    fb:
+      - 'openpyxl 失敗 → xl/worksheets/sheetN.xml と sharedStrings.xml を直接解析'
+      - 'COM: Excel.Application で SaveAs CSV / PDF 出力'
+      - 'soffice --headless --convert-to csv / pdf'
+      - 'pandas + calamine エンジン (python-calamine)'
+    rel: [universal-document-ingestion, chart-analysis, table-reconstruction, office-ooxml-inspection]
+    "no": ['元ブックに保存しない（読取専用で開く）', 'マクロ(.xlsm)を自動実行しない', '機密データの外部送信禁止']
+    risk: low
+  - name: office-ooxml-inspection
+    d: OOXML(zip) を直接展開して document.xml/rels/media を調査
+    tr: [OOXML, unzip, document.xml, _rels, 展開]
+    tools: [terminal, read_file]
+    opt: [search_files]
+    deps: []
+    steps:
+      - 'New-Item -ItemType Directory $env:TEMP\ooxml_x; Copy-Item a.docx $env:TEMP\ooxml_x\a.zip'
+      - 'Expand-Archive $env:TEMP\ooxml_x\a.zip -DestinationPath $env:TEMP\ooxml_x\out'
+      - '[Content_Types].xml と word|ppt|xl/_rels/*.rels で関係（画像・chart・diagram）を把握'
+      - 'word/document.xml の w:t / a:t を抽出、word/media・drawings・charts・diagrams を列挙'
+      - 'diagrams/data*.xml は SmartArt、charts/chart*.xml はグラフとして各 skill へ'
+    verify: 'Get-ChildItem -Recurse out で一覧化し、rels の参照先が全て実在することを確認'
+    fb:
+      - 'Expand-Archive 失敗 → python -I -m zipfile -e a.docx out'
+      - '7z x a.docx（7-Zip を winget install 7zip.7zip）'
+      - '破損時は zip 構造修復を試さず office-native-automation / office-rendering へ'
+    rel: [word-docx, powerpoint-pptx, excel-xlsx, embedded-media-extraction, smartart-analysis, chart-analysis]
+    "no": ['展開は専用の空ディレクトリで行う（作業ディレクトリ外）', '展開物内のスクリプト/マクロを実行しない', '元ファイルを書き換えない']
+    risk: low
+  - name: office-native-automation
+    d: PowerShell COM で Word/Excel/PowerPoint をネイティブ操作
+    tr: [COM, Word.Application, Excel.Application, ネイティブ Office]
+    tools: [terminal]
+    opt: [read_file]
+    deps: [Microsoft Office]
+    steps:
+      - '$w=New-Object -ComObject Word.Application; $w.Visible=$false; $w.DisplayAlerts=0'
+      - '$d=$w.Documents.Open($path,$false,$true)  # ReadOnly で開く'
+      - '$d.ExportAsFixedFormat($out,17) で PDF、$d.SaveAs2($out,16) で別形式'
+      - 'Excel は $x.Workbooks.Open($p,0,$true)、PowerPoint は $pp.Presentations.Open($p,-1,0,0)'
+      - 'finally で $d.Close(0); $w.Quit(); [Runtime.InteropServices.Marshal]::ReleaseComObject($w)'
+    verify: 'Get-Process WINWORD,EXCEL,POWERPNT で残留プロセスなし、出力ファイルが存在'
+    fb:
+      - 'Office 未導入 (Get-Command / レジストリ確認) → LibreOffice soffice --headless'
+      - 'COM 起動失敗 → 残留プロセスを確認し再試行、それでも不可なら python-docx 等'
+      - 'pandoc による変換'
+    rel: [office-rendering, word-docx, excel-xlsx, powerpoint-pptx]
+    "no": ['ユーザーが開いているドキュメントを強制終了しない', 'マクロ実行 (AutomationSecurity 変更) 禁止', '元ファイル上書き保存禁止']
+    risk: medium
+  - name: office-rendering
+    d: Office 文書を PDF/画像へ描画して視覚的に確認
+    tr: [PDF化, レンダリング, 画像化, pdftoppm, 見た目]
+    tools: [terminal, vision_analyze]
+    opt: [read_file]
+    deps: [pdftoppm, PyMuPDF, soffice]
+    steps:
+      - 'COM の ExportAsFixedFormat で PDF 化（office-native-automation）'
+      - 'pdftoppm -r 120 -png a.pdf $env:TEMP\render\p で画像化'
+      - 'PyMuPDF: python -I -c "import fitz;d=fitz.open(p);d[0].get_pixmap(dpi=120).save(o)"'
+      - 'vision_analyze で各ページ画像を解析（図・表・レイアウト）'
+      - 'テキスト層が必要なら pdftotext -layout で補完'
+    verify: 'ページ数と PNG 枚数が一致、vision 結果に図表の記述がある'
+    fb:
+      - 'COM 不可 → soffice --headless --convert-to pdf --outdir out a.docx'
+      - 'pdftoppm 無し → PyMuPDF (pip install pymupdf)'
+      - 'pandoc → PDF（要 LaTeX）/ HTML 化してブラウザで描画'
+      - '最後に ocr-fallback'
+    rel: [office-native-automation, ocr-fallback, universal-document-ingestion, document-structure-analysis]
+    "no": ['出力は専用の一時ディレクトリへ', '元ファイル上書き禁止', 'レンダリング画像の外部アップロード禁止']
+    risk: low
+  - name: embedded-media-extraction
+    d: Office 内の埋め込み画像・動画・OLE を抽出して解析
+    tr: [埋め込み画像, media, OLE, 画像抽出, embeddings]
+    tools: [terminal, vision_analyze]
+    opt: [read_file]
+    deps: []
+    steps:
+      - 'Expand-Archive で展開し word|ppt|xl/media, embeddings を Get-ChildItem'
+      - '_rels/*.rels の Target と画像の対応（どこで使われているか）を取得'
+      - 'emf/wmf は soffice --convert-to png または Inkscape で変換'
+      - 'vision_analyze で各画像を解析、画像内文字は必要時のみ ocr-fallback'
+      - 'embeddings/*.bin / .xlsx(OLE) は別 skill で再帰的に解析'
+    verify: 'media の全ファイルを解析対象として列挙し、各ファイルに結果が紐づく'
+    fb:
+      - 'Expand-Archive 失敗 → python -I -m zipfile -e / 7z x'
+      - 'office-rendering で該当ページを画像化して代用'
+      - 'COM で Shapes を Export (Shape.Export / CopyPicture)'
+    rel: [office-ooxml-inspection, ocr-fallback, universal-document-ingestion]
+    "no": ['抽出物は専用ディレクトリに保存', '抽出した実行ファイル(OLE exe)を実行しない', '画像の外部送信禁止']
+    risk: low
+  - name: smartart-analysis
+    d: SmartArt(diagrams) の構造とテキストを抽出
+    tr: [SmartArt, diagrams, 図表, 組織図, data1.xml]
+    tools: [terminal, read_file]
+    opt: [vision_analyze]
+    deps: []
+    steps:
+      - '展開した ppt|word|xl/diagrams/data*.xml を読み dgm:pt の a:t でノードテキストを抽出'
+      - 'dgm:cxn の srcId/destId から親子関係（階層・フロー）を復元'
+      - 'layout*.xml で図の種別（階層/循環/リスト）を判別'
+      - 'drawing*.xml (dsp:) に描画済みキャッシュのテキスト・座標がある場合は併用'
+      - 'office-rendering で画像化し vision で見た目と突合'
+    verify: '抽出ノード数と画像上のノード数が一致、親子関係が箇条書き/ツリーで再現できる'
+    fb:
+      - 'data.xml 解析不能 → drawing*.xml のみ利用'
+      - 'COM: Shape.SmartArt.AllNodes で取得'
+      - 'レンダリング画像 → vision → 最後に OCR'
+    rel: [office-ooxml-inspection, powerpoint-pptx, office-rendering, chart-analysis]
+    "no": ['SmartArt は読めないと言わない', '元ファイル変更禁止']
+    risk: low
+  - name: chart-analysis
+    d: Office のグラフ(charts) の系列・値・種類を抽出
+    tr: [グラフ, chart, charts/chart1.xml, 系列, 棒グラフ]
+    tools: [terminal, read_file]
+    opt: [vision_analyze]
+    deps: [openpyxl]
+    steps:
+      - '展開した charts/chart*.xml の c:barChart/c:lineChart 等でグラフ種類を判定'
+      - 'c:ser の c:tx(系列名)・c:cat(軸)・c:val の c:v をキャッシュ値として抽出'
+      - 'c:externalData の rels から元 xlsx (embeddings) を特定し openpyxl で元データ取得'
+      - 'タイトル・軸ラベル・単位 (c:title, c:valAx) を取得'
+      - 'レンダリング画像を vision で確認し傾向を要約'
+    verify: '系列数・カテゴリ数が XML と報告で一致、数値表が再現できる'
+    fb:
+      - 'キャッシュ値なし → 埋め込み xlsx から取得'
+      - 'COM: Chart.SeriesCollection(i).Values / XValues'
+      - 'office-rendering → vision で目視推定（推定値と明記）→ OCR'
+    rel: [excel-xlsx, powerpoint-pptx, office-ooxml-inspection, table-reconstruction]
+    "no": ['目視推定値を正確値として断定しない', '元ファイル変更禁止']
+    risk: low
+  - name: speaker-notes-analysis
+    d: PowerPoint のスピーカーノートを抽出・要約
+    tr: [スピーカーノート, notes, 発表者メモ, notesSlide]
+    tools: [terminal, read_file]
+    opt: []
+    deps: [python-pptx]
+    steps:
+      - 'python -I で for i,s in enumerate(prs.slides,1): s.has_notes_slide と notes_text_frame.text を出力'
+      - 'python-pptx 不可時は ppt/notesSlides/notesSlideN.xml の a:t を抽出'
+      - 'ノートとスライド本文の対応を slideN.xml.rels で確認'
+      - 'スライド番号ごとにノートの要点・TODO・参照先を整理'
+    verify: 'notesSlides ファイル数とノート有りスライド数が一致'
+    fb:
+      - 'COM: Slide.NotesPage.Shapes.Placeholders(2).TextFrame.TextRange.Text'
+      - 'soffice --convert-to odp 後に content.xml を解析'
+      - 'ノート付き PDF 出力 (COM ExportAsFixedFormat PrintOutputType=ppPrintOutputNotesPages) → vision'
+    rel: [powerpoint-pptx, document-summarization, office-ooxml-inspection]
+    "no": ['ノートの内容を勝手に書き換えない', '機密ノートの外部送信禁止']
+    risk: low
+  - name: document-authoring
+    d: 新規文書(docx/pptx/xlsx/md)を構成から作成
+    tr: [文書作成, 資料作成, レポート作成, 新規ドキュメント]
+    tools: [terminal, write_file]
+    opt: [read_file, vision_analyze]
+    deps: [python-docx, python-pptx, openpyxl, pandoc]
+    steps:
+      - '目的・読者・形式・分量を確認し見出し構成（アウトライン）を先に作成'
+      - 'Markdown 原稿を作成 → pandoc draft.md -o out.docx --reference-doc=tpl.docx'
+      - '細かい書式は python-docx / python-pptx / openpyxl で組み立て'
+      - 'office-rendering で PDF/画像化し見た目を確認'
+      - '出力先は指定フォルダ、既存ファイルがあれば別名で保存'
+    verify: '再度読み込んで見出し・表・図の数を確認し、レンダリング画像で崩れがない'
+    fb:
+      - 'pandoc 無し → winget install JohnMacFarlane.Pandoc'
+      - 'python-docx 不可 → COM で作成'
+      - 'soffice で md/html → docx 変換'
+    rel: [document-editing, office-rendering, word-docx, powerpoint-pptx, excel-xlsx]
+    "no": ['既存ファイルを無断上書きしない', '作成物の外部送信・公開は承認なしにしない', '出典のない数値・事実を捏造しない']
+    risk: low
+  - name: document-editing
+    d: 既存文書を書式を保ったまま編集
+    tr: [文書編集, 差し替え, 修正, 追記, 書式維持]
+    tools: [terminal, read_file]
+    opt: [write_file, vision_analyze]
+    deps: [python-docx, python-pptx, openpyxl]
+    steps:
+      - '編集前に Copy-Item でバックアップ（*.bak.docx）と checkpoint を作成'
+      - '対象箇所を document-structure-analysis で特定（段落index/スライド/セル）'
+      - 'run 単位で text を置換して書式を維持（paragraph.text 代入は書式が消える）'
+      - '別名で保存し document-comparison で差分確認'
+      - 'office-rendering で見た目の崩れを確認'
+    verify: '差分が意図した箇所のみ、再読込で破損なし（Document(path) が開く）'
+    fb:
+      - 'python-docx 不可 → document.xml を直接編集して zip 再パック'
+      - 'COM (Find.Execute / Replace) で編集'
+      - 'pandoc 経由での再生成'
+    rel: [document-comparison, checkpoint, document-authoring, office-native-automation]
+    "no": ['バックアップ無しで上書きしない', '変更範囲外を触らない', '共有・送信は承認なしにしない']
+    risk: medium
+  - name: document-comparison
+    d: 2つの文書の差分を本文・表・書式レベルで比較
+    tr: [文書比較, 差分, diff, 新旧対照, 変更点]
+    tools: [terminal, read_file]
+    opt: [vision_analyze]
+    deps: [python-docx, pandoc]
+    steps:
+      - '両文書を pandoc a.docx -t plain --wrap=none で正規化テキスト化'
+      - 'git diff --no-index --word-diff a.txt b.txt で語単位差分'
+      - '表は table-reconstruction で CSV 化して pandas で比較'
+      - '図・レイアウト差は office-rendering の PNG を vision で比較'
+      - '追加/削除/変更に分類して報告'
+    verify: '差分件数が分類合計と一致、サンプル数箇所を原文で再確認'
+    fb:
+      - 'pandoc 無し → python-docx で段落を抽出して difflib'
+      - 'COM: Document.Compare / CompareDocuments'
+      - 'PDF 化して pdftotext 比較'
+    rel: [document-editing, document-structure-analysis, git, verification]
+    "no": ['元ファイルを変更しない', '比較結果の外部送信禁止']
+    risk: low
+  - name: document-summarization
+    d: 長文・複数文書を要点・決定事項・TODO に要約
+    tr: [要約, サマリ, 概要, 議事録まとめ]
+    tools: [terminal, read_file]
+    opt: [delegate_task, vision_analyze]
+    deps: []
+    steps:
+      - 'universal-document-ingestion で全文（図表・ノート含む）を取得'
+      - '見出し単位に分割し長文は chunk ごとに要約 → 統合（map-reduce）'
+      - '結論・根拠・決定事項・TODO・数値を分けて整理'
+      - '原文の節/ページ番号を併記し出典を示す'
+      - '図表・画像の内容も要約へ含める'
+    verify: '要約中の数値・固有名詞を原文と照合、未読部分が無いことを確認'
+    fb:
+      - '抽出失敗 → fallback の Office 連鎖（OOXML→レンダリング→vision→OCR）'
+      - '大規模 → delegate_task で分割要約'
+      - '読めない箇所は範囲を明示して報告'
+    rel: [universal-document-ingestion, speaker-notes-analysis, research, document-structure-analysis]
+    "no": ['原文に無い内容を補完しない', '機密文書の外部サービス送信禁止', '未読部分を読んだことにしない']
+    risk: low
+  - name: document-structure-analysis
+    d: 文書の見出し・章立て・表・図・参照構造を解析
+    tr: [構造解析, 見出し, 目次, アウトライン, スタイル]
+    tools: [terminal, read_file]
+    opt: [vision_analyze]
+    deps: [python-docx]
+    steps:
+      - 'paragraph.style.name が Heading N のものを列挙しアウトライン化'
+      - 'document.xml の w:sectPr, w:tbl, w:drawing, w:fldSimple(TOC/REF) を集計'
+      - 'ヘッダ/フッタ・脚注 (footnotes.xml)・コメント (comments.xml) も確認'
+      - '表・図の番号とキャプションの対応表を作成'
+      - 'PPTX はスライドレイアウト、XLSX はシート依存関係を同様に整理'
+    verify: 'アウトラインの見出し数が styles 集計と一致、全表・図が一覧に含まれる'
+    fb:
+      - 'スタイル未使用 → フォントサイズ/太字から見出し推定（推定と明記）'
+      - 'pandoc a.docx -t json で AST 取得'
+      - 'office-rendering → vision で視覚的に章構造を判断'
+    rel: [word-docx, table-reconstruction, document-editing, office-ooxml-inspection]
+    "no": ['推定した構造を確定事項として扱わない', '元ファイル変更禁止']
+    risk: low
+  - name: table-reconstruction
+    d: 文書・画像・PDF 内の表を構造化データ(CSV/表)へ復元
+    tr: [表抽出, テーブル, 表復元, 結合セル, CSV化]
+    tools: [terminal, vision_analyze]
+    opt: [read_file]
+    deps: [pandas, python-docx, camelot, pdfplumber]
+    steps:
+      - 'docx/pptx は native API（doc.tables / shape.table）でセル行列を取得、結合セル(gridSpan/vMerge)を展開'
+      - 'xlsx は pandas.read_excel(header=None) で生データのまま読む'
+      - 'PDF は pdfplumber page.extract_tables()、失敗時 camelot'
+      - '画像は office-rendering→vision で行列化、最後に tesseract --psm 6 tsv'
+      - 'CSV (UTF-8 BOM) に保存し行列数・合計値を原表と照合'
+    verify: '行数・列数と合計/小計が原表と一致、結合セルの値が欠落していない'
+    fb:
+      - 'native 抽出不可 → OOXML の w:tbl を直接解析'
+      - 'pdfplumber 不可 → PyMuPDF page.find_tables()'
+      - 'vision → OCR (tesseract) → 手動確認が必要な箇所を明示'
+    rel: [excel-xlsx, ocr-fallback, chart-analysis, document-structure-analysis]
+    "no": ['OCR 結果を未検証で数値確定しない', '元ファイル変更禁止']
+    risk: low
+  - name: ocr-fallback
+    d: 他手段で読めない画像・スキャンを tesseract で OCR
+    tr: [OCR, tesseract, スキャン, 画像内文字, 文字認識]
+    tools: [terminal, vision_analyze]
+    opt: [read_file]
+    deps: [tesseract, pytesseract]
+    steps:
+      - 'Get-Command tesseract; tesseract --list-langs で jpn/eng を確認'
+      - '前処理: 300dpi 化（pdftoppm -r 300 -png）、グレースケール・二値化'
+      - 'tesseract in.png out -l jpn+eng --psm 6 （表は tsv 出力）'
+      - 'vision_analyze の結果と突合し、不一致箇所を明示'
+      - '信頼度の低い行 (conf<60) を要確認として報告'
+    verify: 'サンプル数行を目視/vision と照合し誤認識率を把握、出力ファイルが空でない'
+    fb:
+      - 'tesseract 無し → winget install UB-Mannheim.TesseractOCR'
+      - 'jpn 無し → tessdata に jpn.traineddata を追加'
+      - 'pip install easyocr / rapidocr-onnxruntime'
+      - 'Windows.Media.Ocr (PowerShell WinRT) / Docker の OCR イメージ'
+    rel: [office-rendering, table-reconstruction, embedded-media-extraction, universal-document-ingestion]
+    "no": ['最初の手段として使わない（native→OOXML→レンダリング→vision の後）', 'OCR 結果を無検証で断定しない', '画像の外部 OCR サービス送信は承認なしにしない']
+    risk: low

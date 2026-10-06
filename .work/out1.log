@@ -1,0 +1,17 @@
+4ファイルを `skills/catalog/` に書き、全ファイルが `yaml.safe_load` で読み込めることを確認しました。全エントリに必須フィールドが揃っていて、`d` は60文字以内、`steps` は3〜6件です。
+
+| ファイル | スキル数 |
+|---|---|
+| `system.yaml` | 27 |
+| `languages.yaml` | 9 |
+| `cpp-windows.yaml` | 11 |
+| `security.yaml` | 6 |
+
+依頼の一覧は27個ありましたが、`system` で数えると27でした。
+
+キー `no` は引用符なしだと `yaml.safe_load` が `False` に変換します。`scripts/kiridev_skills.py` は `g.get("no")` で読むので、禁止事項が取れなくなります。そのため4ファイルでは `"no":` と引用符付きで書きました。
+
+既存の `ai.yaml` などは `no:` を引用符なしで書いています。同じ問題が出ている可能性がありますが、触っていません。
+
+`scripts/kiridev_skills.py build` は実行していません。
+[worker sonnet] turns=11 tokens=267289 cost=$0.4929

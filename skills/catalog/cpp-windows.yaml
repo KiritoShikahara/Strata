@@ -1,0 +1,236 @@
+category: cpp-windows
+defaults:
+  tools: [terminal, read_file]
+  fallback: ['tool-missing: winget/pip/npm で導入 → 代替ツール']
+  risk: low
+skills:
+  - name: cmake
+    d: CMake による C++ プロジェクトの構成・ビルド
+    tr: [CMake, CMakeLists.txt, CMakePresets, ビルド構成]
+    tools: [terminal, read_file, patch]
+    opt: [search_files]
+    deps: [cmake, ninja]
+    steps:
+      - 'cmake --version と CMakePresets.json の有無を確認する'
+      - 'cmake --preset <name> または cmake -S . -B build -G "Ninja Multi-Config" で構成する'
+      - 'target_link_libraries / target_include_directories(PRIVATE/PUBLIC) でターゲット単位に依存を記述する'
+      - 'cmake --build build --config Debug -j で構築し ctest --test-dir build -C Debug を実行する'
+      - '依存は find_package(CONFIG) か vcpkg toolchain (-DCMAKE_TOOLCHAIN_FILE) で解決する'
+    verify: 'cmake --build が成功し ctest が全件 pass'
+    fb:
+      - 'cmake 不在: winget install Kitware.CMake'
+      - 'Ninja 不在: winget install Ninja-build.Ninja か -G "Visual Studio 17 2022"'
+      - '構成キャッシュ破損: build ディレクトリを別名で新規作成して再構成'
+      - 'msbuild で .sln を直接ビルド'
+    rel: [msbuild, msvc, cpp, testing]
+    "no": ['build ディレクトリ以外を削除しない', 'グローバル CMAKE 変数を無断で恒久設定しない']
+    risk: low
+  - name: msbuild
+    d: MSBuild による .sln/.vcxproj のビルドと診断
+    tr: [MSBuild, .sln, .vcxproj, Visual Studio ビルド]
+    tools: [terminal, read_file]
+    opt: [patch]
+    deps: [msbuild, vswhere]
+    steps:
+      - '& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find MSBuild\**\Bin\MSBuild.exe でパスを得る'
+      - 'msbuild <sln> /m /p:Configuration=Debug /p:Platform=x64 /v:m /bl でビルドする'
+      - 'エラーは /fl /flp:logfile=msbuild.log;errorsonly で抽出する'
+      - '.binlog を MSBuild Structured Log Viewer で解析する'
+      - '/t:Clean;Build で再現確認する'
+    verify: 'msbuild の終了コード 0 で "0 Error(s)"'
+    fb:
+      - 'msbuild 不在: Developer PowerShell for VS を使うか VS Build Tools を winget 導入'
+      - 'dotnet msbuild'
+      - 'cmake --build 経由に統一'
+      - 'PlatformToolset 不一致は /p:PlatformToolset=v143 で試す'
+    rel: [cmake, msvc, win32]
+    "no": ['VS のインストール構成を承認なしで変更しない', '.vcxproj を全面再生成して既存設定を失わない']
+    risk: low
+  - name: msvc
+    d: MSVC (cl/link) コンパイラ・リンカの利用と診断
+    tr: [MSVC, cl.exe, link.exe, /std:c++20, LNK]
+    tools: [terminal, read_file]
+    opt: [patch]
+    deps: [cl, link, vswhere]
+    steps:
+      - 'Developer PowerShell (Launch-VsDevShell.ps1 -Arch amd64) で環境を読み込む'
+      - 'cl /nologo /EHsc /std:c++20 /W4 /permissive- /Zi main.cpp /link /DEBUG で試験ビルドする'
+      - 'LNK2019/2001 は dumpbin /symbols /exports と lib 順序・/MD /MT 不一致で調べる'
+      - '最適化は /O2 /GL /LTCG、診断は /analyze を使う'
+      - 'PDB 生成(/Zi)と /fsanitize=address を必要に応じ有効にする'
+    verify: 'cl が警告・エラー 0 で終了し実行ファイルが起動する'
+    fb:
+      - 'cl 不在: winget install Microsoft.VisualStudio.2022.BuildTools (C++ workload)'
+      - 'clang-cl (winget install LLVM.LLVM)'
+      - 'MinGW-w64 で代替ビルド'
+      - 'cmake 経由で構成'
+    rel: [cmake, msbuild, cpp, memory-performance]
+    "no": ['警告を /w で一括抑制して隠さない', 'ランタイム(/MD と /MT)を混在させない']
+    risk: low
+  - name: win32
+    d: Win32 API のウィンドウ・メッセージ・エラー処理の実装
+    tr: [Win32, WinAPI, HWND, WndProc, GetLastError]
+    tools: [terminal, read_file, patch]
+    opt: [web_search, search_files]
+    deps: [cl, cmake]
+    steps:
+      - 'WinMain/wWinMain、RegisterClassExW、CreateWindowExW、PeekMessage ループの順で土台を確認する'
+      - 'UNICODE/_UNICODE を定義し W 版 API と wchar_t を統一する'
+      - '戻り値と GetLastError / FormatMessageW で失敗を処理し HANDLE は RAII(unique_handle)で閉じる'
+      - 'DPI は SetProcessDpiAwarenessContext(PER_MONITOR_AWARE_V2) とマニフェストで設定する'
+      - '機能は Microsoft Learn の該当 API の最小 OS 版・ヘッダ・ライブラリを確認して使う'
+    verify: 'ウィンドウが表示・終了でき、ハンドルリークがない (Process Explorer/ Handle 数が安定)'
+    fb:
+      - 'ヘッダ/リンクエラー: #include <windows.h> と #pragma comment(lib) または target_link_libraries を確認'
+      - 'API 不明: web_search で Microsoft Learn を参照'
+      - 'WinUI/Qt/SDL2 で代替'
+      - 'Spy++/Window Spy で HWND を検査'
+    rel: [msvc, directx11, concurrency, debugging]
+    "no": ['未文書化 API・フックを承認なしで使わない', '他プロセスへのインジェクションをしない']
+    risk: low
+  - name: directx11
+    d: Direct3D 11 の初期化・描画・シェーダ実装
+    tr: [DirectX 11, D3D11, HLSL, SwapChain, DXGI]
+    tools: [terminal, read_file, patch]
+    opt: [search_files, vision_analyze]
+    deps: [cl, cmake, fxc]
+    steps:
+      - 'D3D11CreateDeviceAndSwapChain に D3D11_CREATE_DEVICE_DEBUG(Debug のみ)を指定し FEATURE_LEVEL を確認する'
+      - 'BackBuffer から RenderTargetView と DepthStencilView を作り OMSetRenderTargets / RSSetViewports を設定する'
+      - 'HLSL は D3DCompileFromFile または fxc /T vs_5_0 /E main でコンパイルしエラーを ID3DBlob から出力する'
+      - 'ComPtr<T> で COM を管理し HRESULT は FAILED() で検査する'
+      - 'リサイズ時は ResizeBuffers 前に RTV を解放する'
+    verify: 'デバッグレイヤーの警告 0 で期待のフレームが描画される (ID3D11InfoQueue)'
+    fb:
+      - 'Debug layer 不在: Optional Features の Graphics Tools を追加 (承認後)'
+      - 'WARP (D3D_DRIVER_TYPE_WARP) で GPU 非依存確認'
+      - 'RenderDoc/PIX でフレームキャプチャ'
+      - 'DirectXTK で補助実装'
+    rel: [directx12, graphics-debugging, win32, gpu-nvidia]
+    "no": ['Release に Debug layer を残さない', 'ドライバ設定を承認なしで変更しない']
+    risk: low
+  - name: directx12
+    d: Direct3D 12 の初期化・同期・コマンドリスト実装
+    tr: [DirectX 12, D3D12, PSO, CommandList, DXC]
+    tools: [terminal, read_file, patch]
+    opt: [search_files, vision_analyze]
+    deps: [cl, cmake, dxc]
+    steps:
+      - 'D3D12GetDebugInterface で Debug layer を有効化後 D3D12CreateDevice を作る'
+      - 'CommandQueue / Allocator / CommandList と Fence + イベントで GPU 同期を実装する'
+      - 'RootSignature と PipelineState を作り dxc -T ps_6_0 -E main でシェーダをコンパイルする'
+      - 'リソースは ResourceBarrier で状態遷移し DescriptorHeap を管理する'
+      - 'フレーム数分の Allocator/リソースをリングで回し Present 後に Fence を待つ'
+    verify: 'Debug layer / GPU-Based Validation でエラー 0、フレームが正常描画'
+    fb:
+      - 'dxc 不在: Windows SDK か winget install Microsoft.DirectX.ShaderCompiler 相当 / vcpkg directx-dxc'
+      - 'WARP12 で GPU 差を排除'
+      - 'PIX (winget install Microsoft.PIX) で解析'
+      - 'D3D11 / DirectX 12 Agility SDK 版を確認'
+    rel: [directx11, graphics-debugging, concurrency, memory-performance]
+    "no": ['GPU 同期なしでリソースを解放しない', 'Debug layer を Release に残さない']
+    risk: low
+  - name: graphics-debugging
+    d: PIX/RenderDoc による描画不具合の調査
+    tr: [PIX, RenderDoc, 描画バグ, 黒画面, GPU クラッシュ]
+    tools: [terminal, read_file]
+    opt: [vision_analyze, browser_vision]
+    deps: [pix, renderdoc, dxdiag]
+    steps:
+      - 'dxdiag /t dx.txt と nvidia-smi でドライバ/GPU 状態を記録する'
+      - 'Debug layer 出力と HRESULT (DXGI_ERROR_DEVICE_REMOVED は GetDeviceRemovedReason) を確認する'
+      - 'PIX (GPU capture) または RenderDoc でフレームを取得し RTV/深度/ビューポート/バインドを検査する'
+      - 'シェーダデバッグで入出力値を確認し、最小再現に絞り込む'
+      - 'vision_analyze でスクリーンショットを比較し、仮説と修正を 1 つずつ検証する'
+    verify: '原因(状態/シェーダ/同期)を特定し修正後に再キャプチャで期待結果を確認'
+    fb:
+      - 'RenderDoc 不在: winget install BaldurKarlsson.RenderDoc'
+      - 'PIX 不在: winget install Microsoft.PIX'
+      - 'Nsight Graphics / Visual Studio Graphics Analyzer'
+      - 'WARP で再現確認'
+    rel: [directx11, directx12, gpu-nvidia, debugging]
+    "no": ['TDR タイムアウト等のシステムレジストリ設定を承認なしで変更しない', 'キャプチャに含まれる個人情報を外部送信しない']
+    risk: low
+  - name: memory-performance
+    d: C++ のメモリ・CPU 性能の計測と最適化
+    tr: [メモリリーク, パフォーマンス, プロファイル, キャッシュ, 最適化]
+    tools: [terminal, read_file]
+    opt: [patch, vision_analyze]
+    deps: [cl, wpr, vsdiagnostics]
+    steps:
+      - 'Release + /Zi(PDB) で計測用ビルドを作り、ベースライン(フレーム時間/ms)を記録する'
+      - 'リークは _CrtDumpMemoryLeaks / /fsanitize=address / VS Diagnostic Tools で検出する'
+      - 'CPU は wpr -start CPU; ... ; wpr -stop trace.etl を WPA か Superluminal/VTune で解析する'
+      - 'ホットスポットを AoS→SoA、割当削減(arena/pool)、キャッシュ局所性で改善する'
+      - '変更ごとに再計測し改善率を記録する'
+    verify: '同条件の再計測で数値が改善し、リーク/ASan 報告が 0'
+    fb:
+      - 'wpr 不在: Windows Performance Toolkit (Windows ADK) を導入'
+      - 'Tracy / Optick を組込む'
+      - 'std::chrono とカウンタで手動計測'
+      - 'WSL の valgrind/perf で代替'
+    rel: [cpp, msvc, concurrency, ecs]
+    "no": ['計測なしで最適化を適用しない', 'Debug ビルドの数値で判断しない', 'トレースを外部送信しない']
+    risk: low
+  - name: concurrency
+    d: C++ の並行処理・スレッド安全性の設計と検証
+    tr: [スレッド, mutex, atomic, データ競合, ジョブシステム]
+    tools: [terminal, read_file, patch]
+    opt: [search_files]
+    deps: [cl, clang]
+    steps:
+      - '共有可変状態を洗い出し所有スレッドを明確にする'
+      - 'std::mutex + std::scoped_lock / std::atomic(memory_order 既定 seq_cst) / std::jthread で実装する'
+      - 'ジョブ/タスクキュー設計では false sharing(alignas(64))とロック順序を確認する'
+      - 'clang -fsanitize=thread (WSL/Linux) や Application Verifier、VS Concurrency Visualizer で検証する'
+      - 'ストレステスト(多回数ループ・スレッド数変更)で再現性を確認する'
+    verify: 'TSan/検証ツールで競合 0、ストレスを 1000 回通過'
+    fb:
+      - 'TSan は Windows 非対応のため WSL/Docker の clang を使用'
+      - 'MSVC /analyze と CppCoreCheck (/analyze:plugin) を使う'
+      - '設計を単一スレッド+メッセージパッシングに簡略化'
+      - 'ロックフリーを避け mutex 版に戻す'
+    rel: [cpp, memory-performance, ecs, debugging]
+    "no": ['volatile を同期手段として使わない', 'detach したスレッドで寿命管理を放棄しない', '検証なしでロックフリー化しない']
+    risk: low
+  - name: ecs
+    d: ECS (Entity Component System) の設計と実装
+    tr: [ECS, エンティティ, コンポーネント, EnTT, システム]
+    tools: [terminal, read_file, patch]
+    opt: [search_files, web_search]
+    deps: [cmake, entt]
+    steps:
+      - 'Entity は ID(世代付き)、Component は POD、System は純粋な処理に分離する'
+      - '既存実装なら EnTT を vcpkg install entt で導入し registry.view<A,B>() で反復する'
+      - '自作はスパースセット/アーキタイプでコンポーネントを連続配置にする'
+      - '構造変更(create/destroy)は反復中に行わず遅延コマンドバッファで適用する'
+      - 'システム順序と依存(読取/書込)を明示し並列化可否を決める'
+    verify: '単体テストで生成/破棄/反復が正しく、大量エンティティ計測で期待性能'
+    fb:
+      - 'EnTT 不在: vcpkg / FetchContent で取得'
+      - 'flecs / Bevy 型設計を参照 (web_search)'
+      - 'まず単純な SoA 配列で実装し後で ECS 化'
+    rel: [memory-performance, concurrency, physics-integration, cpp]
+    "no": ['反復中に対象コンテナを変更しない', 'ライセンス未確認コードを取り込まない']
+    risk: low
+  - name: physics-integration
+    d: 物理エンジンのゲーム/アプリへの統合
+    tr: [物理演算, Box2D, Bullet, PhysX, Jolt, 衝突判定]
+    tools: [terminal, read_file, patch]
+    opt: [web_search, search_files]
+    deps: [cmake, vcpkg]
+    steps:
+      - '要件(2D/3D、剛体、キャラ、決定性)から Box2D / Jolt / Bullet / PhysX を選び vcpkg で導入する'
+      - '固定タイムステップ(例 1/60 s)+ アキュムレータで Step し、描画は補間する'
+      - '物理 Body と ECS/シーンの Transform を同期する(単一の真実の所在を決める)'
+      - '衝突レイヤー/フィルタとコールバックの実行スレッドを設計する'
+      - 'デバッグ描画で形状・接触を可視化し挙動を検証する'
+    verify: 'デバッグ描画で衝突が期待どおり、同一入力で再現性があり、フレーム時間が予算内'
+    fb:
+      - 'ビルド失敗: vcpkg の triplet (x64-windows) とランタイム(/MD)を合わせる'
+      - '別エンジンへ切替'
+      - '単純な AABB/SAT を自作して検証'
+      - 'ライセンス確認 (web_search)'
+    rel: [ecs, concurrency, cmake, graphics-debugging]
+    "no": ['ライセンス未確認のライブラリを組み込まない', '可変フレーム時間で直接 Step しない']
+    risk: low

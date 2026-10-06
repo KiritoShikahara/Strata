@@ -4,7 +4,7 @@ chcp 65001 >nul
 title Strata + Qwen Code
 set "OPENAI_BASE_URL=http://127.0.0.1:8080/v1"
 set "OPENAI_API_KEY=strata"
-set "OPENAI_MODEL=strata"
+set "OPENAI_MODEL=qwen3.8-flash-next-iq2_xs"
 
 curl -s -m 2 http://127.0.0.1:8080/health >nul 2>nul
 if errorlevel 1 (

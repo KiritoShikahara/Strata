@@ -1,11 +1,11 @@
 # 引き継ぎ (2026-10-06 14:22 / main)
 
-次の一手: `strata-qwen.cmd` をダブルクリックし、Strata の起動と Qwen Code の起動を確認する（初回の読み込みは 1〜3 分、PC が重くなる）。
+次の一手: `strata-qwen.bat` をダブルクリックし、Strata の起動と Qwen Code の起動を確認する（初回の読み込みは 1〜3 分、PC が重くなる）。
 
 ## 完了
 - 環境 B（5070 12GB / RAM 64GB）に Strata を導入した: `C:\Strata`、データは `C:\Strata-data`、モデルは IQ2_XS（`--family qwen`）
 - Qwen Code 0.25.0 を導入し、Strata 経由の応答を確認した（`qwen -p "1+1は？"` → 2、40秒）
-- 起動用 bat を作成した: `strata-qwen.cmd`（Strata を起動し、`/health` を待って `qwen` を開く）
+- 起動用 bat を作成した: `strata-qwen.bat`（Strata を起動し、`/health` を待って `qwen` を開く）
 - 400 エラー（max_tokens 64000 > 文脈 32768）を、`C:\Strata\strata-iq2_xs.json` に `"fit_max_tokens": true` を追加して解消した
 
 ## 残り（優先順・最大5件）
@@ -23,4 +23,4 @@
 - git に入らないもの: `C:\Strata`（`git clone https://github.com/Niko1221/Strata C:\Strata`）、`C:\Strata-data`（約 70GB）、`strata-iq2_xs.json` の `fit_max_tokens` 設定
 - 他の PC では `START-HERE.bat --yes --family qwen --model <サイズ> --no-start` を実行する。Claude Code 経由で bat を呼ぶときはフルパスで `call` する（相対名だと「認識されない」と出る）
 - `npm install -g @qwen-code/qwen-code`
-- 環境変数（名前のみ）: `OPENAI_BASE_URL`、`OPENAI_API_KEY`、`OPENAI_MODEL`（`strata-qwen.cmd` 内で設定済み）
+- 環境変数（名前のみ）: `OPENAI_BASE_URL`、`OPENAI_API_KEY`、`OPENAI_MODEL`（`strata-qwen.bat` 内で設定済み）

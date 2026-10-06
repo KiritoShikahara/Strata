@@ -15,6 +15,16 @@
 
 32GB RAM では Coder しか載らない。64GB にすると IQ2_XS（推奨）など全サイズが使える（`docs/MODELS.md`）。
 
+## 想定する 3 環境
+
+| 環境 | GPU | RAM | 使えるモデル |
+| --- | --- | --- | --- |
+| A（現行） | RTX 4070 Ti 12GB | DDR5 32GB | Coder IQ1_M のみ |
+| B | RTX 5070 12GB | DDR5 64GB | 全サイズ（IQ2_XS 推奨） |
+| C | RTX 3060 12GB | DDR4 64GB | 全サイズ（DDR4 のため B より遅い見込み） |
+
+サイズ別の必要 RAM は `docs/MODELS.md` を参照（未確認）。
+
 ## 別の PC で再開する手順
 
 1. 本体をクローン: `git clone https://github.com/Niko1221/Strata C:\Strata`
@@ -35,3 +45,17 @@
 - セットアップは 1 つだけ動かす。2 つ同時に動かすと同じ `.part` ファイルに書き込んで壊れる。
 - ダウンロードが途中で止まっても、同じコマンドを再実行すれば `.part` から続きを取得する。
 - speed projection は安全のための拒否を外す機能。Web 画面の Sampling からチャットごとにオフにできる。
+
+## 目的と方針
+
+- 目的: Strata で Qwen3.8-Flash-Next を動かす環境を作る。
+- 利用ハーネス: **Qwen Code**（第一候補）。Qwen のツール呼び出し形式に合わせて作られているため。比較対象は opencode。
+- 複数環境（上の A / B / C）で動かすため、**全モデルを動かす可能性がある**。モデル名や設定は環境ごとに差し替えられる形にする。
+- 優先順位: 安定性 > 速度 > 軽さ。ハーネスの完成度（賢く使えること）も重視する。
+
+## Qwen Code の接続（未確認・未設定）
+
+1. Strata を起動し、URL とポートを確認する
+2. Qwen Code の `OPENAI_BASE_URL` / `OPENAI_MODEL` を Strata に向ける
+3. 環境ごとに `OPENAI_MODEL` だけ差し替える
+4. 同じ課題を opencode でも試し、ツール呼び出し成功率と初回応答秒数を比較する

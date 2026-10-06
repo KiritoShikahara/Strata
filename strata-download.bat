@@ -19,9 +19,9 @@ if defined N goto pick
 echo.
 echo  Pick a model (RAM = what the PC needs; the download is 66-76 GB for the sizes below the Coder):
 echo.
-echo    1  IQ2_XS    39 GB RAM   fast, better quality     RECOMMENDED for 48-64 GB
+echo    1  IQ2_XS    39 GB RAM   fast, better quality     48-64 GB
 echo    2  Q2_0      38 GB RAM   fastest, good quality
-echo    3  IQ3_XXS   47 GB RAM   slower, great quality    64 GB
+echo    3  IQ3_XXS   47 GB RAM   slower, great quality    RECOMMENDED for 64 GB
 echo    4  IQ3_S     55 GB RAM   slowest, best quality    64 GB with little else open
 echo    5  Coder     30 GB RAM   code only, fits 32 GB PCs
 echo    6  Swift     39 GB RAM   IQ2_XS fine-tune that thinks shorter

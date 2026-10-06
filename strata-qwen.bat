@@ -10,7 +10,7 @@ if not defined STRATA_DIR set "STRATA_DIR=C:\Strata"
 set "OPENAI_BASE_URL=http://127.0.0.1:8080/v1"
 set "OPENAI_API_KEY=strata"
 set "OPENAI_MODEL=strata"
-set "TAG=iq2_xs"
+set "TAG=iq3_xxs"
 if exist "%STRATA_DIR%\selected-model.txt" set /p TAG=<"%STRATA_DIR%\selected-model.txt"
 set "STARTED=0"
 

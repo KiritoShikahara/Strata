@@ -1,12 +1,22 @@
 @echo off
-rem Start Strata (IQ2_XS), then open Qwen Code when the server answers.
+rem Copy this single file into any project folder: Qwen Code opens in the folder this file is in.
+rem Starts Strata (IQ2_XS), then opens Qwen Code when the server answers.
 rem If Strata is already running it is reused (no duplicate start).
 rem Only when THIS bat started Strata: Strata stops when Qwen Code exits or this window is closed.
+rem Strata location: set STRATA_DIR before running to override (default C:\Strata).
 title Strata + Qwen Code
+if not defined STRATA_DIR set "STRATA_DIR=C:\Strata"
 set "OPENAI_BASE_URL=http://127.0.0.1:8080/v1"
 set "OPENAI_API_KEY=strata"
 set "OPENAI_MODEL=qwen3.8-flash-next-iq2_xs"
 set "STARTED=0"
+
+where qwen >nul 2>nul
+if errorlevel 1 (
+  echo Qwen Code is not installed. Run install-strata-qwen.bat first.
+  pause
+  exit /b 1
+)
 
 curl -s -m 2 http://127.0.0.1:8080/health >nul 2>nul
 if not errorlevel 1 goto reuse
@@ -14,10 +24,15 @@ if not errorlevel 1 goto reuse
 netstat -ano | findstr ":8080 " | findstr LISTENING >nul
 if not errorlevel 1 goto busy
 
+if not exist "%STRATA_DIR%\run-iq2_xs.bat" (
+  echo Strata not found at %STRATA_DIR%. Run install-strata-qwen.bat first.
+  pause
+  exit /b 1
+)
 echo Starting Strata. First load takes 1-3 minutes and the PC may slow down.
 set "STARTED=1"
 rem /b keeps the server in this console: closing this window also ends Strata.
-start "" /b cmd /c "C:\Strata\run-iq2_xs.bat"
+start "" /b cmd /c "%STRATA_DIR%\run-iq2_xs.bat"
 goto wait
 
 :reuse

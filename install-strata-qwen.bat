@@ -81,6 +81,7 @@ rem ---- strata-qwen.bat is stored below, one comment line each; step 6 writes i
 ::| rem Starts Strata (IQ2_XS), then opens Qwen Code when the server answers.
 ::| rem If Strata is already running it is reused (no duplicate start).
 ::| rem Only when THIS bat started Strata: Strata stops when Qwen Code exits or this window is closed.
+::| rem Qwen Code runs in YOLO mode: every tool call is approved automatically (no prompts).
 ::| rem Strata location: set STRATA_DIR before running to override (default C:\Strata).
 ::| title Strata + Qwen Code
 ::| if not defined STRATA_DIR set "STRATA_DIR=C:\Strata"
@@ -128,7 +129,7 @@ rem ---- strata-qwen.bat is stored below, one comment line each; step 6 writes i
 ::| )
 ::| echo Strata is ready. Opening Qwen Code.
 ::| cd /d "%~dp0"
-::| call qwen
+::| call qwen --approval-mode yolo
 ::| 
 ::| if "%STARTED%"=="1" (
 ::|   echo Stopping Strata.

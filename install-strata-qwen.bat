@@ -1,7 +1,7 @@
 @echo off
 rem One-click installer: Strata (Qwen3.8-Flash-Next IQ2_XS) + Qwen Code.
 rem Safe to run again: finished steps are skipped and the model download resumes.
-rem Needs about 80 GB free on C: and a few hours for the ~70 GB download.
+rem Context is 131072 tokens (docs: measured on a 12 GB RTX 5070). Needs about 80 GB free on C: and a few hours for the ~70 GB download.
 setlocal
 title Install Strata + Qwen Code
 set "STRATA_DIR=C:\Strata"
@@ -38,7 +38,7 @@ echo [3/6] Setting up Strata with %MODEL% (the model download is about 70 GB) ..
 if exist "%STRATA_DIR%\run-iq2_xs.bat" (
   echo Already set up.
 ) else (
-  call "%STRATA_DIR%\START-HERE.bat" --yes --family qwen --model %MODEL% --no-start || goto fail
+  call "%STRATA_DIR%\START-HERE.bat" --yes --family qwen --model %MODEL% --context 131072 --no-start || goto fail
 )
 if not exist "%STRATA_DIR%\run-iq2_xs.bat" goto fail
 

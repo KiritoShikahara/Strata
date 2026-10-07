@@ -49,7 +49,13 @@ if not defined TAG (
 
 echo.
 echo Model: %FAMILY% %SIZE%
-if exist "%STRATA_DIR%\run-%TAG%.bat" (
+rem the refusal-removing projection (experimental-speed-projection) is on by default; Swift does not support it
+set "ESP=on"
+if "%FAMILY%"=="swift" set "ESP=off"
+set "NEED=1"
+if exist "%STRATA_DIR%\run-%TAG%.bat" set "NEED=0"
+if "%NEED%%ESP%"=="0on" findstr /c:"speed-projection" "%STRATA_DIR%\strata-%TAG%.json" >nul 2>nul || set "NEED=1"
+if "%NEED%"=="0" (
   echo Already downloaded and set up. Nothing to download.
 ) else (
   if not "%~2"=="" (
@@ -62,7 +68,7 @@ if exist "%STRATA_DIR%\run-%TAG%.bat" (
     )
   )
   echo Setting up. Without local files this downloads 30-76 GB: it can be stopped and resumed by running this file again.
-  call "%STRATA_DIR%\START-HERE.bat" --yes --family %FAMILY% --model %SIZE% --context 131072 --no-start --data-dir "%DATA_DIR%"
+  call "%STRATA_DIR%\START-HERE.bat" --yes --family %FAMILY% --model %SIZE% --context 131072 --no-start --data-dir "%DATA_DIR%" --experimental-speed-projection %ESP%
   if not exist "%STRATA_DIR%\run-%TAG%.bat" (
     echo.
     echo Setup did not finish. Run this file again to resume.

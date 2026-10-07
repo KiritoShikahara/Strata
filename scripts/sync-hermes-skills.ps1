@@ -17,6 +17,9 @@ $old = @(); if (Test-Path $manifestPath) { $old = @(Get-Content $manifestPath | 
 $skillDirs = Get-ChildItem $src -Recurse -Filter SKILL.md -File |
   Where-Object { $_.FullName -notmatch '\\catalog\\' -and $_.FullName -notmatch '\\(references|templates|assets|scripts)\\.*SKILL\.md$' } |
   ForEach-Object { $_.Directory.FullName.Substring($src.Length + 1) } | Sort-Object -Unique
+# Only the active set goes into Hermes; the rest is loaded on demand from the repo (skill-router).
+$active = @(Get-Content (Join-Path $repo 'hermes\active-skills.txt') | Where-Object { $_ -and $_ -notmatch '^\s*#' } | ForEach-Object { $_.Trim().Replace('/', '\') })
+$skillDirs = @($skillDirs | Where-Object { $r = $_; $active | Where-Object { $r -eq $_ -or $r.StartsWith("$_\") } })
 
 $new = @()
 foreach ($rel in $skillDirs) {
@@ -40,9 +43,14 @@ foreach ($rel in $old) {
 if (-not $WhatIf) { $new | Set-Content -Encoding ASCII $manifestPath }
 "KiriDev skills synced: $($new.Count) (removed $removed) -> $dst"
 
+# Hermes bundled skills that are not needed: hidden via skills.disabled.
+$disabled = @(Get-Content (Join-Path $repo 'hermes\disabled-skills.txt') | Where-Object { $_ -and $_ -notmatch '^\s*#' } | ForEach-Object { $_.Trim() })
+$json = '[' + (($disabled | ForEach-Object { '"' + $_ + '"' }) -join ',') + ']'
+if ($WhatIf) { "set skills.disabled ($($disabled.Count))" } else { hermes config set skills.disabled $json | Out-Null; "Hermes skills disabled: $($disabled.Count)" }
+
 # Always-loaded KiriDev core block in SOUL.md (between markers; the rest of SOUL.md is left untouched).
 $soul = Join-Path $HermesHome 'SOUL.md'
-$core = (Get-Content (Join-Path $repo 'hermes\kiridev-core.md') -Raw -Encoding UTF8).TrimEnd()
+$core = (Get-Content (Join-Path $repo 'hermes\kiridev-core.md') -Raw -Encoding UTF8).TrimEnd().Replace('{{KIRIDEV_SKILLS}}', $src)
 $begin = '<!-- KIRIDEV:BEGIN (managed by scripts/sync-hermes-skills.ps1) -->'
 $end = '<!-- KIRIDEV:END -->'
 $text = if (Test-Path $soul) { [IO.File]::ReadAllText($soul) } else { '' }

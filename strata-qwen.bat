@@ -4,9 +4,9 @@ rem Starts the Strata model picked by strata-download.bat, then opens Qwen Code 
 rem If Strata is already running it is reused (no duplicate start).
 rem Only when THIS bat started Strata: Strata stops when Qwen Code exits or this window is closed.
 rem Qwen Code runs in YOLO mode: every tool call is approved automatically (no prompts).
-rem Strata location: set STRATA_DIR before running to override (default D:\Strata).
+rem Strata location: the STRATA_DIR environment variable (set by the installer), else C:\Strata.
 title Strata + Qwen Code
-if not defined STRATA_DIR set "STRATA_DIR=D:\Strata"
+if not defined STRATA_DIR set "STRATA_DIR=C:\Strata"
 set "OPENAI_BASE_URL=http://127.0.0.1:8080/v1"
 set "OPENAI_API_KEY=strata"
 set "OPENAI_MODEL=strata"
@@ -48,7 +48,7 @@ echo Port 8080 is in use (Strata may still be loading). Waiting for it.
 :wait
 curl -s -m 2 http://127.0.0.1:8080/health >nul 2>nul
 if errorlevel 1 (
-  timeout /t 5 /nobreak >nul
+  "%SystemRoot%\System32\timeout.exe" /t 5 /nobreak >nul
   goto wait
 )
 echo Strata is ready. Opening Qwen Code.

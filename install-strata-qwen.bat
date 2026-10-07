@@ -2,12 +2,24 @@
 rem One-click installer: Strata + the model you pick + Qwen Code, all from this single file.
 rem   install-strata-qwen.bat        pick the model from a menu
 rem   install-strata-qwen.bat 2      pick by number (see the menu), no question
+rem   install-strata-qwen.bat 1 "E:\models\IQ2_XS"   use GGUF files you already have (copied, no model download)
 rem Safe to run again: finished steps are skipped and the model download resumes.
 rem It also writes strata-download.bat (add or switch models later) and strata-qwen.bat (the launcher) next to this file.
-rem Needs about 80 GB free on C: per model and a few hours for the 66-76 GB download. Context is 131072 tokens.
+rem Strata goes to C:\Strata by default; the menu's [B] opens a folder picker to put it elsewhere.
+rem The models go next to it (C:\Strata-data). The place is saved as the user environment variable STRATA_DIR,
+rem so a strata-qwen.bat copied into any folder finds Strata.
+rem Needs about 80 GB free per model and a few hours for the 66-76 GB download. Context is 131072 tokens.
 setlocal
 title Install Strata + Qwen Code
-set "STRATA_DIR=D:\Strata"
+if not defined STRATA_DIR set "STRATA_DIR=C:\Strata"
+if not "%~1"=="" goto place_done
+echo.
+echo  Install Strata to %STRATA_DIR% (models in %STRATA_DIR%-data)?
+choice /c YB /n /m "[Y] yes  [B] browse for another folder: "
+if errorlevel 2 call :browse
+:place_done
+setx STRATA_DIR "%STRATA_DIR%" >nul
+echo Strata folder: %STRATA_DIR%
 set "STRATA_NOPAUSE=1"
 
 echo [1/7] Checking git and Node.js ...
@@ -39,7 +51,7 @@ if exist "%STRATA_DIR%\START-HERE.bat" (
 echo [3/7] Writing strata-download.bat and downloading the model ...
 powershell -NoProfile -Command "$o = Get-Content '%~f0' | Where-Object { $_ -like '::+ *' } | ForEach-Object { $_.Substring(4) }; Set-Content -Path '%~dp0strata-download.bat' -Value $o -Encoding ASCII"
 if not exist "%~dp0strata-download.bat" goto fail
-call "%~dp0strata-download.bat" %1 || goto fail
+call "%~dp0strata-download.bat" %1 %2 || goto fail
 
 echo [4/7] Installing Qwen Code ...
 where qwen >nul 2>nul
@@ -65,6 +77,14 @@ echo To add or switch models later, run strata-download.bat (next to this file).
 pause
 exit /b 0
 
+:browse
+set "PICKED="
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description = 'Pick where to put the Strata folder (a Strata folder is created inside)'; if ($d.ShowDialog() -eq 'OK') { $d.SelectedPath }"`) do set "PICKED=%%i"
+if not defined PICKED exit /b 0
+if /i "%PICKED:~-7%"=="\Strata" (set "STRATA_DIR=%PICKED%") else (set "STRATA_DIR=%PICKED%\Strata")
+if "%PICKED:~-1%"=="\" set "STRATA_DIR=%PICKED%Strata"
+exit /b 0
+
 :need_restart
 echo.
 echo Git or Node.js was just installed. Close this window and run this file again.
@@ -84,9 +104,9 @@ rem ---- strata-qwen.bat: lines starting with "::| " ----
 ::| rem If Strata is already running it is reused (no duplicate start).
 ::| rem Only when THIS bat started Strata: Strata stops when Qwen Code exits or this window is closed.
 ::| rem Qwen Code runs in YOLO mode: every tool call is approved automatically (no prompts).
-::| rem Strata location: set STRATA_DIR before running to override (default D:\Strata).
+::| rem Strata location: the STRATA_DIR environment variable (set by the installer), else C:\Strata.
 ::| title Strata + Qwen Code
-::| if not defined STRATA_DIR set "STRATA_DIR=D:\Strata"
+::| if not defined STRATA_DIR set "STRATA_DIR=C:\Strata"
 ::| set "OPENAI_BASE_URL=http://127.0.0.1:8080/v1"
 ::| set "OPENAI_API_KEY=strata"
 ::| set "OPENAI_MODEL=strata"
@@ -128,7 +148,7 @@ rem ---- strata-qwen.bat: lines starting with "::| " ----
 ::| :wait
 ::| curl -s -m 2 http://127.0.0.1:8080/health >nul 2>nul
 ::| if errorlevel 1 (
-::|   timeout /t 5 /nobreak >nul
+::|   "%SystemRoot%\System32\timeout.exe" /t 5 /nobreak >nul
 ::|   goto wait
 ::| )
 ::| echo Strata is ready. Opening Qwen Code.
@@ -145,11 +165,14 @@ rem ---- strata-download.bat: lines starting with "::+ " ----
 ::+ rem Download (or switch to) a Strata model. Run it any time to add another model.
 ::+ rem   strata-download.bat          pick from a menu
 ::+ rem   strata-download.bat 3        pick by number (no menu)
-::+ rem The model you pick becomes the one strata-hermes.bat starts (saved in %STRATA_DIR%\selected-model.txt).
-::+ rem Strata location: set STRATA_DIR before running to override (default D:\Strata).
+::+ rem   strata-download.bat 1 "D:\old\models\IQ2_XS"   use GGUF files you already have (copied, no download)
+::+ rem The model you pick becomes the one strata-qwen.bat / strata-hermes.bat start (saved in %STRATA_DIR%\selected-model.txt).
+::+ rem Strata location: the STRATA_DIR environment variable (set by the installer), else C:\Strata.
+::+ rem Model files go next to it: %STRATA_DIR%-data (e.g. C:\Strata-data).
 ::+ setlocal
 ::+ title Strata model download
-::+ if not defined STRATA_DIR set "STRATA_DIR=D:\Strata"
+::+ if not defined STRATA_DIR set "STRATA_DIR=C:\Strata"
+::+ set "DATA_DIR=%STRATA_DIR%-data"
 ::+ if not exist "%STRATA_DIR%\START-HERE.bat" (
 ::+   echo Strata not found at %STRATA_DIR%. Run install-strata-qwen.bat first.
 ::+   pause
@@ -174,12 +197,13 @@ rem ---- strata-download.bat: lines starting with "::+ " ----
 ::+ 
 ::+ :pick
 ::+ set "FAMILY=qwen"
+::+ set "PFX="
 ::+ if "%N%"=="1" ( set "SIZE=IQ2_XS"  & set "TAG=iq2_xs" )
 ::+ if "%N%"=="2" ( set "SIZE=Q2_0"    & set "TAG=q2_0" )
 ::+ if "%N%"=="3" ( set "SIZE=IQ3_XXS" & set "TAG=iq3_xxs" )
 ::+ if "%N%"=="4" ( set "SIZE=IQ3_S"   & set "TAG=iq3_s" )
-::+ if "%N%"=="5" ( set "FAMILY=coder" & set "SIZE=IQ1_M"  & set "TAG=coder-iq1_m" )
-::+ if "%N%"=="6" ( set "FAMILY=swift" & set "SIZE=IQ2_XS" & set "TAG=swift-iq2_xs" )
+::+ if "%N%"=="5" ( set "FAMILY=coder" & set "PFX=coder-" & set "SIZE=IQ1_M"  & set "TAG=coder-iq1_m" )
+::+ if "%N%"=="6" ( set "FAMILY=swift" & set "PFX=swift-" & set "SIZE=IQ2_XS" & set "TAG=swift-iq2_xs" )
 ::+ if not defined TAG (
 ::+   echo Unknown choice "%N%". Use a number from 1 to 6.
 ::+   pause
@@ -191,8 +215,17 @@ rem ---- strata-download.bat: lines starting with "::+ " ----
 ::+ if exist "%STRATA_DIR%\run-%TAG%.bat" (
 ::+   echo Already downloaded and set up. Nothing to download.
 ::+ ) else (
-::+   echo Downloading and setting up. This takes a long time and can be stopped and resumed by running this file again.
-::+   call "%STRATA_DIR%\START-HERE.bat" --yes --family %FAMILY% --model %SIZE% --context 131072 --no-start
+::+   if not "%~2"=="" (
+::+     echo Copying the model files from %~2 ...
+::+     robocopy "%~2" "%DATA_DIR%\models\%PFX%%SIZE%" *.gguf *.done /J /NP /NJH /NJS
+::+     if errorlevel 8 (
+::+       echo Copy failed.
+::+       pause
+::+       exit /b 1
+::+     )
+::+   )
+::+   echo Setting up. Without local files this downloads 30-76 GB: it can be stopped and resumed by running this file again.
+::+   call "%STRATA_DIR%\START-HERE.bat" --yes --family %FAMILY% --model %SIZE% --context 131072 --no-start --data-dir "%DATA_DIR%"
 ::+   if not exist "%STRATA_DIR%\run-%TAG%.bat" (
 ::+     echo.
 ::+     echo Setup did not finish. Run this file again to resume.
@@ -207,13 +240,13 @@ rem ---- strata-download.bat: lines starting with "::+ " ----
 ::+ 
 ::+ > "%STRATA_DIR%\selected-model.txt" echo %TAG%
 ::+ echo.
-::+ echo Done. strata-hermes.bat now starts: %FAMILY% %SIZE%
+::+ echo Done. strata-qwen.bat now starts: %FAMILY% %SIZE%
 ::+ if "%~1"=="" pause
 ::+ exit /b 0
 rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# UEsDBBQAAAAAAEo+R10AAAAAAAAAAAAAAAAHACAAY29tbWl0L3V4CwABBAAAAAAEAAAAAFVUDQAH
-::# LHvFaul8xWose8VqUEsDBBQACAAIAEo+R10AAAAAAAAAAAAAAAAPACAAY29tbWl0L1NLSUxMLm1k
-::# dXgLAAEEAAAAAAQAAAAAVVQNAAcse8VquXzFaix7xWpdUstu2zAQvBvwPyycHmLAZNFHekiLAkaT
+::# LHvFav/VxWose8VqUEsDBBQACAAIAEo+R10AAAAAAAAAAAAAAAAPACAAY29tbWl0L1NLSUxMLm1k
+::# dXgLAAEEAAAAAAQAAAAAVVQNAAcse8VqQs7Faix7xWpdUstu2zAQvBvwPyycHmLAZNFHekiLAkaT
 ::# Pg7tIUnRQ1FAjLQSCVGkQFJO/PcdUoob9GBYJHdnZ2ZHCLFeOTXwJdV+GExarxqOdTBjMt5d0uY2
 ::# qY5JWUu1Vq7jSMo1Sy09mKRJ4eRqEzn/H9jlRmXFUjJwjBlhUKnWxnUUePSkTUw+HOVmvVKhmwZ0
 ::# CbwmDPztxxnh1OoD5bc/KBaZ7np1dkZ3Kvb587MJMVGYHFUdxsWk0hRJxPtqN980pm3p6/X+ioTI
@@ -224,8 +257,8 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# ISRSyrze1jyevmvtA8+nbXGwerG/+fLz+/WPu9sqb68zyOaOJuQ07yiW2c8ihhtVcgbWF3J2UzUN
 ::# iT1iMRiHVC2yZpO2/3K0RF0MtPmwIH7cVMB5J+kGcQ9pFqrzl1ZRl9ZnNuQIZGtOyxinqNH/F1BL
 ::# Bwjbz9o/GAIAAJ4DAABQSwMEFAAAAAAASj5HXQAAAAAAAAAAAAAAAAcAIABjb21wdXMvdXgLAAEE
-::# AAAAAAQAAAAAVVQNAAcse8Vq6XzFaix7xWpQSwMEFAAIAAgASj5HXQAAAAAAAAAAAAAAAA8AIABj
-::# b21wdXMvU0tJTEwubWR1eAsAAQQAAAAABAAAAABVVA0AByx7xWq5fMVqLHvFal2TQW/TQBCF75Hy
+::# AAAAAAQAAAAAVVQNAAcse8Vq/9XFaix7xWpQSwMEFAAIAAgASj5HXQAAAAAAAAAAAAAAAA8AIABj
+::# b21wdXMvU0tJTEwubWR1eAsAAQQAAAAABAAAAABVVA0AByx7xWpCzsVqLHvFal2TQW/TQBCF75Hy
 ::# H55SDknIugLEJVSVKlqgBwoq5YSQvLXH9pL1rrW7Tpp/3xk7aYCbvTOefe97Y6XUdOJ0S2sUvu36
 ::# OJ2UFItgumS8W2P20betSdDWomi0qylCuxLc2SA1hKIPgVzCY9CuaDA/L8YPuOZwLm2LbDad6FD3
 ::# LfepxrjEY3/54QJt0VKMuib4AKn95mYloqaTszM86LiRx08mxITQO+Q1D49Jpz5Cxcd8NZ6Upqrw
@@ -237,8 +270,8 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# 3a7YI+Pww/CYfPePHtnXXNI8toOeTEzM1Mse7Azbe2mE6tmZqZndxbj+l/lx2t2wWZUPBSnpHZgF
 ::# +sP5U7nip86H4ScBhSB4TmreZbgfyzyY11bopZ2H5BXXRxaNZgGvj4RXp58yUOytUH4GUEsHCJ+2
 ::# YQE/AgAA2wMAAFBLAwQUAAAAAABKPkddAAAAAAAAAAAAAAAACAAgAGZlYXR1cmUvdXgLAAEEAAAA
-::# AAQAAAAAVVQNAAcse8Vq6XzFaix7xWpQSwMEFAAIAAgASj5HXQAAAAAAAAAAAAAAABAAIABmZWF0
-::# dXJlL1NLSUxMLm1kdXgLAAEEAAAAAAQAAAAAVVQNAAcse8VquXzFaix7xWqFVttOG0kQfUfyP7SS
+::# AAQAAAAAVVQNAAcse8Vq/9XFaix7xWpQSwMEFAAIAAgASj5HXQAAAAAAAAAAAAAAABAAIABmZWF0
+::# dXJlL1NLSUxMLm1kdXgLAAEEAAAAAAQAAAAAVVQNAAcse8VqQs7Faix7xWqFVttOG0kQfUfyP7SS
 ::# lSJZMYhEkVZotVISohVaZRXl8hRFwgsDWIDN+pIoUh6mZ8DY2MTEYHMx95uNARtIlnXA4H9Ju2fG
 ::# T/mFreoeX3Ck3RfTzHRXVZ9z6tS4XC5Hh9c9rvSQIcUdDPkVR8egEhjweyaCHp+3h9wx0ifWfsI4
 ::# 2LD0K6YlmRq39mn18px8CyeJlTu2chGxZFqFaV+ZVuSRsJXdEc94YcPamWLqLKOF2maY0WxNPWMa
@@ -270,9 +303,9 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# DEC4LjgKHlHj+EFD4zwGvwnhaGERKi/m/4btbjRnHUBnLRrpryiYTAlnsUrFUAb895vWebJlXC2I
 ::# yFpj1so6G23sdJJv6sKNDjVTeZ74B9KQ/iHPmNIz5vEq/bZrG4VY+1HjCD2tWlLFdwdONNvE2huU
 ::# bsjeJV2kWlkzU8tyIOH33b9QSwcIw/QXUswGAABgDAAAUEsDBBQAAAAAAEo+R10AAAAAAAAAAAAA
-::# AAAIACAAaGFuZG9mZi91eAsAAQQAAAAABAAAAABVVA0AByx7xWrpfMVqLHvFalBLAwQUAAgACABK
+::# AAAIACAAaGFuZG9mZi91eAsAAQQAAAAABAAAAABVVA0AByx7xWr/1cVqLHvFalBLAwQUAAgACABK
 ::# PkddAAAAAAAAAAAAAAAAEAAgAGhhbmRvZmYvU0tJTEwubWR1eAsAAQQAAAAABAAAAABVVA0AByx7
-::# xWq5fMVqLHvFanVWT28bRRS/R8p3eEo52JZ3LVp6MVGkqGlJQUmqNhVCCGUnu2N78HpmNTNr41vS
+::# xWpCzsVqLHvFanVWT28bRRS/R8p3eEo52JZ3LVp6MVGkqGlJQUmqNhVCCGUnu2N78HpmNTNr41vS
 ::# 0qqllBNFqgQSRQikgnqsEK3U74KTlJ76Ffi92XXSFOgh9c7OvPd+f96bjaJocUGLkezSQOjM9HqL
 ::# C5l0qVWFV0Z3aemaGEvyA0lpaa3UnibGDsl54SX1jCUrXTlSuk9Gk9AGOy1dudCliVXYEddRO+ur
 ::# m2tbly7Fo4wamdGSOjg5Ekrz0Q4fHpg8wy8tv/AIL4tmm9NqSs1opDzJsbRTP+DtCElF6QYxXeXk
@@ -297,8 +330,8 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# qqv7Mmdk07OSfIvaIBNJaxGdETkP3+NjIRA0krYf3GzlrnD1FXWevwDCSSQ/yzY4RzwIMVFqJgag
 ::# uV2VyXdx7k/ugepuDp8a7u2BC7ThIyKpruqk/oxIkPUfUEsHCG21ChE2BQAAMgkAAFBLAwQUAAAA
 ::# AABKPkddAAAAAAAAAAAAAAAADwAgAGhhbmRvZmYtc29ubmV0L3V4CwABBAAAAAAEAAAAAFVUDQAH
-::# LHvFaul8xWose8VqUEsDBBQACAAIAEo+R10AAAAAAAAAAAAAAAAZACAAaGFuZG9mZi1zb25uZXQv
-::# bGF1bmNoLmNtZHV4CwABBAAAAAAEAAAAAFVUDQAHLHvFarl8xWose8VqjVLPa4MwFL4L/g+PgKNl
+::# LHvFav/VxWose8VqUEsDBBQACAAIAEo+R10AAAAAAAAAAAAAAAAZACAAaGFuZG9mZi1zb25uZXQv
+::# bGF1bmNoLmNtZHV4CwABBAAAAAAEAAAAAFVUDQAHLHvFakLOxWose8VqjVLPa4MwFL4L/g+PgKNl
 ::# aPE66linjnXr6LAt7CCUNMbqZpOiz+Jpf/ti1HXdqZeEJO9734+XB84yCTJNTaPiWEhGC9Mo+QEW
 ::# tBYsAworKQRHGNUFlhRuIbczeuI2TbJkDH5B64SDL9XCpKhkwSEXgBmHfX7iAo6l/OQMIZVFwkun
 ::# 672p6J7fQaEpHHZIgEwvC++J1gPkPVq+eNa3q855CsRqzxbxPELgz7sfWF0Bb/IKh7KYaXW2a2vt
@@ -306,7 +339,7 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# 9MQMm68c41JKdLDBzuTkCP7643W+3kbL5dqbXont6R9nq1AldG5gxZQxWQt0/9nVFrVGIfFXZ4u3
 ::# VFb6oygOW5HoglT1SByIaqFGXqGK0dlRHMbf/QxfCuTNMFVI87JCB27gSOuKq73PEFyVYT+Inu+c
 ::# 9A9QSwcIaldqqmcBAACjAgAAUEsDBBQACAAIAEo+R10AAAAAAAAAAAAAAAAXACAAaGFuZG9mZi1z
-::# b25uZXQvU0tJTEwubWR1eAsAAQQAAAAABAAAAABVVA0AByx7xWq5fMVqLHvFao1X308b1xJ+R+J/
+::# b25uZXQvU0tJTEwubWR1eAsAAQQAAAAABAAAAABVVA0AByx7xWpCzsVqLHvFao1X308b1xJ+R+J/
 ::# OKK3aq9v1hZt74uFkKJLEqKWpgrtw5XyYMfewApjc+112kh98O4CsWPCr8QQwCSBEGxMsMMNIQ4Y
 ::# +F96vD946r/QmTlrvE4TtXlITvbMmTPzzTffGUuS1N0VD4/LQTYajkcTd+5IqUQ8LqvdXVE5FUkq
 ::# E6qSiAfZFzcm0inGtRIbnpAj7FtFhf9UnW2teXzIfpteZE55zylnacn1M66/53rNzE47pRe/N7Ip
@@ -341,10 +374,10 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# T9wRx32qn++bCw88kVGXfQNvDW3ANV/xTPFrYU9DICzttWqQ8czMJ39MYDUDE0pkLD0hKpZ7ROUv
 ::# ex599jHpRn60f3uU8q3n9CHFZh+ukixtB0m46feT+PHUVl/Cz1VYHLlB2Ag2++289bRIbv4AUEsH
 ::# CBtc5FJhBwAA5Q0AAFBLAwQUAAAAAABKPkddAAAAAAAAAAAAAAAADAAgAGktaGF2ZS1hZGhkL3V4
-::# CwABBAAAAAAEAAAAAFVUDQAHLHvFaul8xWose8VqUEsDBBQAAAAAAEo+R10AAAAAAAAAAAAAAAAT
-::# ACAAaS1oYXZlLWFkaGQvYWdlbnRzL3V4CwABBAAAAAAEAAAAAFVUDQAHLHvFaul8xWose8VqUEsD
+::# CwABBAAAAAAEAAAAAFVUDQAHLHvFav/VxWose8VqUEsDBBQAAAAAAEo+R10AAAAAAAAAAAAAAAAT
+::# ACAAaS1oYXZlLWFkaGQvYWdlbnRzL3V4CwABBAAAAAAEAAAAAFVUDQAHLHvFav/VxWose8VqUEsD
 ::# BBQACAAIAEo+R10AAAAAAAAAAAAAAAATACAAaS1oYXZlLWFkaGQvTElDRU5TRXV4CwABBAAAAAAE
-::# AAAAAFVUDQAHLHvFarl8xWose8VqXVJLj5swEL5Hyn8Y5bQroW21hx56c8BJrAJGxtk0RwJOcEVw
+::# AAAAAFVUDQAHLHvFakLOxWose8VqXVJLj5swEL5Hyn8Y5bQroW21hx56c8BJrAJGxtk0RwJOcEVw
 ::# hE2j/PvOkOxuWwkJ5vU9ZsiEhtTWpvdmPpvPYne5DfbUBniqn+H16+s3YDc3HmDdDtZ7ainMcMZP
 ::# 63qwHlozmMMNTkPVB9NEcByMAXeEuq2Gk4kgOKj6G1zM4HHAHUJle9ufoIIaqeYzbA0t4nh3DNdq
 ::# MNjdQOW9q22FgNC4ejybPlSBCI+2Mx6eQmtgUT4mFs8TS2Oqbj6zPVDxvQZXG1o3BhiMD4OtCSQC
@@ -357,7 +390,7 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# X3HKRBZBwjK25tOURBi0R313gbDbcMoRI8Mn1kLm5CSWuVYYRmhU6Y/ZnSh5BEyJknayUjJDj7RT
 ::# HJETCg7m/A5D+4Z/zoItFG9L/oEICWcpgpU0PLl878ar/gFQSwcIiEtutIECAABCBAAAUEsDBBQA
 ::# CAAIAEo+R10AAAAAAAAAAAAAAAAUACAAaS1oYXZlLWFkaGQvU0tJTEwubWR1eAsAAQQAAAAABAAA
-::# AABVVA0AByx7xWq5fMVqLHvFan1ZYZPbthH9fjP3H1ClM7ZnJMVxfGkqf/Ccc+fEE8fO+C5N0k+C
+::# AABVVA0AByx7xWpCzsVqLHvFan1ZYZPbthH9fjP3H1ClM7ZnJMVxfGkqf/Ccc+fEE8fO+C5N0k+C
 ::# SFBEjgRYgDxZ7fS/970FSElnp18SmQSBxe7bt2/3FovF+ZnTrVkpu6j1vVnosi7Pz0oTi2C73nq3
 ::# Uo9uat0Z5Ye+G3pV+aC0CkaXJqid7Wt1efXD1Uo1eJL+3ddGOfOxV7rgBnPlhnaDxe3Q9HYRe9Op
 ::# nQ93c2wSe90blf6ri+BjVP0QXJyrOHQd3uPf2m2N6/Foa++xtjOFrWyhetsahQ1si4/xttV3Bue7
@@ -419,12 +452,12 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# 3TSCRrZsDQ0eJ1tTKWuE2Zrj8e0tMZwmXytpoQ5Ez//F8e84J7PjPHJMwUx/9Eho36fa/Fg/SUGT
 ::# 4IteS6X+8ebJZ6L5MvfFeyNqSsYD/wNQSwcIKls4JWANAAC1HAAAUEsDBBQACAAIAEo+R10AAAAA
 ::# AAAAAAAAAAAXACAAaS1oYXZlLWFkaGQvVVBTVFJFQU0ubWR1eAsAAQQAAAAABAAAAABVVA0AByx7
-::# xWq5fMVqLHvFao2PwUoDMRCG7wt5hx/20oLZoB5svUkpUmi9qCcRkt1NN0N3NyGZCnvzIXxCn8TU
+::# xWpCzsVqLHvFao2PwUoDMRCG7wt5hx/20oLZoB5svUkpUmi9qCcRkt1NN0N3NyGZCnvzIXxCn8TU
 ::# gxR68fjN/Mx8f4nXkDhaM4hCFDuK0Uf4Pd7M1LlIiqQzH1aa1rXvM8cc0r1SHbE71lXjB3UZm0On
 ::# A/V9Oh9qGEbOD8RY3C4Xdzd7zHabF2ypsWOyV3kZpkidYzxM/ljjMZ9NCd+fX0jWQm83q/XT81rP
 ::# q5NoWWbv1jCN3Qm11rVJThTZDE3vRwspWxvY4Rr/sobiIShyRhRNgIx/rC7LqArn9PteFD9QSwcI
 ::# t3S3jNYAAABKAQAAUEsDBBQACAAIAEo+R10AAAAAAAAAAAAAAAAeACAAaS1oYXZlLWFkaGQvYWdl
-::# bnRzL2dlbWluaS50b21sdXgLAAEEAAAAAAQAAAAAVVQNAAcse8VquXzFaix7xWplVV1v3DYQfDfg
+::# bnRzL2dlbWluaS50b21sdXgLAAEEAAAAAAQAAAAAVVQNAAcse8VqQs7Faix7xWplVV1v3DYQfDfg
 ::# /7BQHmoDd3LT1P24Qx/apPkA3Bao8wcoiZLYo0iWS95ZCNLf3llKZ7spYNiWRM3Ozs6OXtA7PRln
 ::# 6PXdB2ozJz9R66dJuY56H8lsR3XUW9WNXX158YI+OE7K2h0OhZmSp39u6qEg3Kyv8c3zd4BnN5RG
 ::# 7SjNQdPNl4D32vbb1rukjNMdsSeT6OTjgUnhhwbrG2WfOEUQVG6mzkTdJh9noFxedJrbaEIy3tFP
@@ -447,13 +480,13 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# PmP/ziA8esyjtSqafpZx/R9qVFH88hW0PzniGek80fr5kzL46sI+MCZ8tJj6cVgNwvfqGQYG72C4
 ::# g0aSye1iuusy6U+fVBz48+fLi/JB/RdQSwcIO5WuK5UEAACFCAAAUEsDBBQACAAIAEo+R10AAAAA
 ::# AAAAAAAAAAAeACAAaS1oYXZlLWFkaGQvYWdlbnRzL29wZW5haS55YW1sdXgLAAEEAAAAAAQAAAAA
-::# VVQNAAcse8VquXzFaix7xWpNjzEOwjAMRfdKvYNVsZYDsFVigAMwR1biqBZpHMUu0NuTloXNst/z
+::# VVQNAAcse8VqQs7Faix7xWpNjzEOwjAMRfdKvYNVsZYDsFVigAMwR1biqBZpHMUu0NuTloXNst/z
 ::# tzkb1YieLn0HEFhLws1lXOgCwx1u+CKYrrfrsI91lmoukPrKxVhyYya/F2PkqgayWlkNotRDgkoY
 ::# qOohB4q4JnOlylKsmQ8lOPE4t4gRwxzABBZ8EtjM2lQtkhuC/wGYAxDqtrP0Ib8andv2viuS2G/H
 ::# E5iSvB0vpXXYHOeXePxdGzEp9d0XUEsHCBXSQmOvAAAA9QAAAFBLAwQUAAAAAABKPkddAAAAAAAA
-::# AAAAAAAACgAgAG92ZXJuaWdodC91eAsAAQQAAAAABAAAAABVVA0AByx7xWrpfMVqLHvFalBLAwQU
+::# AAAAAAAACgAgAG92ZXJuaWdodC91eAsAAQQAAAAABAAAAABVVA0AByx7xWr/1cVqLHvFalBLAwQU
 ::# AAgACABKPkddAAAAAAAAAAAAAAAAEgAgAG92ZXJuaWdodC9TS0lMTC5tZHV4CwABBAAAAAAEAAAA
-::# AFVUDQAHLHvFarl8xWose8VqjVdbUyJZEn43wv9Q0bMbs8u2Oj2z09trbGxER0zHRD/0PMzlvR2p
+::# AFVUDQAHLHvFakLOxWose8VqjVdbUyJZEn43wv9Q0bMbs8u2Oj2z09trbGxER0zHRD/0PMzlvR2p
 ::# UWIVOhR7o9/qAgoCDV4RwUEUBbEFvLSNoPhf5nCqiqf+C5uZ5xSgPRu7L0RRVSdPnu/78suskZGR
 ::# 4SH/xKw6rgReq3N+39R0cHjIq85PzvleBX0B/7jyeaeR4LmylTG6m2vMWLXiS7y6zfQ00w+dpQpv
 ::# xzo3OevghOkbTM8yI8Y0g6dCzGgx02TGB2aWmHnO9KpVjTHjlhlXzKhhnPQeP9mC+532Tnf3mpkt
@@ -495,8 +528,8 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# zOCya4n23WnisA3fb79p60rnZgNrJIalx4wIfTod90cUPSa70OBEIJeCSds7GpQUYNvV1lFxSCGe
 ::# GRsMdVToAPgC+n3C9RePR5Bmpxbt9VMZbPAT4c73gfvp1fsrR3cA9m2eZ3eHh/4DUEsHCBrCdc0G
 ::# CQAA+xAAAFBLAwQUAAAAAABKPkddAAAAAAAAAAAAAAAADwAgAG92ZXJuaWdodC1nb2FsL3V4CwAB
-::# BAAAAAAEAAAAAFVUDQAHLHvFaul8xWose8VqUEsDBBQACAAIAEo+R10AAAAAAAAAAAAAAAAXACAA
-::# b3Zlcm5pZ2h0LWdvYWwvU0tJTEwubWR1eAsAAQQAAAAABAAAAABVVA0AByx7xWq5fMVqLHvFan1X
+::# BAAAAAAEAAAAAFVUDQAHLHvFav/VxWose8VqUEsDBBQACAAIAEo+R10AAAAAAAAAAAAAAAAXACAA
+::# b3Zlcm5pZ2h0LWdvYWwvU0tJTEwubWR1eAsAAQQAAAAABAAAAABVVA0AByx7xWpCzsVqLHvFan1X
 ::# 31MiVxZ+p4r/4dZkt7JhgzNmdrNZaytVqdqt1DxkHzbJ09ZWSbSjVBQswUnmje4GBYHxJyiCQWdU
 ::# UCLo6DgIKv/LXm43POVf2HPO7W5anM0LBd33nnvud77zfQe/3+/1hAKzyhgLP1fmQ8Gp6ah/KhyY
 ::# 8XomlcjEfHAuGgyHxtiHRkHr5ze4WuFqg6snXF3h2iXXb7he+/UmKeqZbmvR2N3vtq9+vUlxbd3I
@@ -534,9 +567,9 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# TDCkQFNrcTdKz/6OJ71rO35nTTM+n1Scbgs9CAbX/8Y2Wfc2h6qZztH/WkB40TIqabpqeug/rvQN
 ::# QF2CQRqYpZb5BE9w/5ewTgDnN3djRgqJ0Y9tYsMhgxFkiA0eg07XpAWDYE8xmOSsubpobp5bwdwG
 ::# e89d7enL+Wnbe128LIviHjFhmW544f77LCdZr+d/UEsHCPUO7A0kCAAADxAAAFBLAwQUAAAAAABK
-::# PkddAAAAAAAAAAAAAAAABwAgAHBpY2t1cC91eAsAAQQAAAAABAAAAABVVA0AByx7xWrpfMVqLHvF
+::# PkddAAAAAAAAAAAAAAAABwAgAHBpY2t1cC91eAsAAQQAAAAABAAAAABVVA0AByx7xWr/1cVqLHvF
 ::# alBLAwQUAAgACABKPkddAAAAAAAAAAAAAAAADwAgAHBpY2t1cC9TS0lMTC5tZHV4CwABBAAAAAAE
-::# AAAAAFVUDQAHLHvFarl8xWose8VqjVZdTxNZGL5v0v9wopuYNBYW3b1pNiZG112zEY26V8akFQaY
+::# AAAAAFVUDQAHLHvFakLOxWose8VqjVZdTxNZGL5v0v9wopuYNBYW3b1pNiZG112zEY26V8akFQaY
 ::# CC1hpm68mzPTQlvKAiIgtshXaaFIAXVZpFB+zJkz0175F/Z9z5kpZfXCm36cOe/X8z7v8044HA4G
 ::# 4rERJUJG1b7nydFgoF/R+sbUUV1NxCPkin206yzsMrrI6Ip9WnQ2d5n5io9PtRYmGV1i5iQzzEFV
 ::# J4zW3Nyhk55kVv3x/dv34cuuzzuVN/CA6DHtudY10g+HbuETz07BIV894LM5RieZmWVGntFtRucY
@@ -564,9 +597,9 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# GcXrkL+Th5bDW0m5R6wwvNa5zs6n+6cuwvPHPDMh8qi036LEaPvLGF+gMP6kgGJKskJWyk/Xccw9
 ::# VezwDas2FJIghEIRGMkcwP71DKLMD6jDSgR3Dwg3vrWcr5i7txktQUShc9fQoxxY9Pg1xuBLJmUf
 ::# SS63Ta+jqaSAMJX1+CIsNToY+A9QSwcItg3kiQIGAAC6CgAAUEsDBBQAAAAAAEo+R10AAAAAAAAA
-::# AAAAAAALACAAcHJpb3JpdGllcy91eAsAAQQAAAAABAAAAABVVA0AByx7xWrpfMVqLHvFalBLAwQU
+::# AAAAAAALACAAcHJpb3JpdGllcy91eAsAAQQAAAAABAAAAABVVA0AByx7xWr/1cVqLHvFalBLAwQU
 ::# AAgACABKPkddAAAAAAAAAAAAAAAAEwAgAHByaW9yaXRpZXMvU0tJTEwubWR1eAsAAQQAAAAABAAA
-::# AABVVA0AByx7xWq5fMVqLHvFapVWa08aWRj+TsJ/OGk3aUIWKbb9QhqTJt3uNptesnU/NU2G6lQn
+::# AABVVA0AByx7xWpCzsVqLHvFapVWa08aWRj+TsJ/OGk3aUIWKbb9QhqTJt3uNptesnU/NU2G6lQn
 ::# RTAydtONHzgziiCw2nqvWu+gsEJNb1RQ/0vPXOBT/0Lf95xhQNvs5YMjc+Y9z3t73uccv9/v9UTD
 ::# Q3KIDI8osRFFVeS419Mvx/tGlGFViUVD5BLTTpn2iWkVo5po5AtMe2mOF82JlHmUb24kGS01Nvfs
 ::# nSNGl5mWYXSD0ReMlpn2lumvmQ7PNEtoRv1VY/+Q6TUXzdpfb+jHsDKgqPDsvXfzHvwzavNWYQn2
@@ -596,9 +629,9 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# db7jDgd3LKl9yeLsgq7sBbk+YgesjzVxMgH6WYUkkrMZlVHs7+iVn7QoA0OQ5bkL+XeIzP0A91N4
 ::# hYCMJj4ax7P2q3GAM3NLxnEORQK5Me3AdWhs9jJm6yhy9jsXX2TT4vlMzhAJq3aCMo7fQ0QSvIM7
 ::# EUhSiDgnGRCoRbWORuE0cOmClnwFUEsHCAC9ga13BgAAMQwAAFBLAwQUAAAAAABKPkddAAAAAAAA
-::# AAAAAAAABQAgAHB1bGwvdXgLAAEEAAAAAAQAAAAAVVQNAAcse8Vq6XzFaix7xWpQSwMEFAAIAAgA
+::# AAAAAAAABQAgAHB1bGwvdXgLAAEEAAAAAAQAAAAAVVQNAAcse8Vq/9XFaix7xWpQSwMEFAAIAAgA
 ::# Sj5HXQAAAAAAAAAAAAAAAA0AIABwdWxsL1NLSUxMLm1kdXgLAAEEAAAAAAQAAAAAVVQNAAcse8Vq
-::# uXzFaix7xWptUj1v3DAM3Q+4/0Akyx0Qu+hHlnTrkLZLh6LdT7aoWI0sGiIVN/++pO6SukAnyxLf
+::# Qs7Faix7xWptUj1v3DAM3Q+4/0Akyx0Qu+hHlnTrkLZLh6LdT7aoWI0sGiIVN/++pO6SukAnyxLf
 ::# 4+N77Lpuv8tuxjtYakr7nUceS1wkUr6Dq3uUcQKXPQTH0gUqqyseZEIYaymYBYbistaEQjNEYagL
 ::# S0E3wyHjExaYsTwg30DBwbEdqICPPCoPQ6LRJVipPB77q/2uMzX73fU1/HD8aMf7WFig1AynhyjA
 ::# 4qQydDycmqp2GZrIrlu0DE9wWKNMsE5OWn+eMCUQogSRwT25mNyQ8Ngb/acS88P/xqmLQsArBzS6
@@ -608,17 +641,17 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# Wn348OKD+e7jk+2Xh8NAGlMzolG/GumpDdPW0GjPe9jD97/iGurNxdORahbeGn/7WhwzUG4sshIk
 ::# NY/vGkNdLEIPxUTC4UTJ933G9XRsRFaS6zzomBRA7+EcB5+XS59jMebOKIHr8AtHfTzM7jfc6gxL
 ::# qqZI12WT4z++qNaomS9mXxYV/QdQSwcIoQWwyQ0CAADZAwAAUEsDBBQAAAAAAEo+R10AAAAAAAAA
-::# AAAAAAAFACAAcHVzaC91eAsAAQQAAAAABAAAAABVVA0AByx7xWrpfMVqLHvFalBLAwQUAAgACABK
-::# PkddAAAAAAAAAAAAAAAADQAgAHB1c2gvU0tJTEwubWR1eAsAAQQAAAAABAAAAABVVA0AByx7xWq5
-::# fMVqLHvFanVQy07DMBC8V+o/jNpLK+FIPE6AOCJxQQjxAd0mm8Q0saNdpxV/zzq0pRw42LJ3dmZ2
+::# AAAAAAAFACAAcHVzaC91eAsAAQQAAAAABAAAAABVVA0AByx7xWr/1cVqLHvFalBLAwQUAAgACABK
+::# PkddAAAAAAAAAAAAAAAADQAgAHB1c2gvU0tJTEwubWR1eAsAAQQAAAAABAAAAABVVA0AByx7xWpC
+::# zsVqLHvFanVQy07DMBC8V+o/jNpLK+FIPE6AOCJxQQjxAd0mm8Q0saNdpxV/zzq0pRw42LJ3dmZ2
 ::# 1jk3nwXq+R7DqO18VrGW4ofkY7jH4s1qSC2jHEU4JGyFQmmlCJ8U46BJmHqslC+/BkfxjQ/wNXqv
 ::# 6kOzLhbzmct289lyiQ/SXX4+e9EEGQM2jU/QRGlUON1usDr41OLQUuI9C7TlrjPp2MEraE++o23H
 ::# 6+xWtlzupkGPA2YdLrLBPxEm7LrAS51BYZCdYEqx73M0apkqxPoc6gpKX9AICpXJx8EUbk78k21L
 ::# xgwXnHOwvN3NA2I2O3jlvwjceNrY44/U08b0bwu8TtnrKCW73Hl2nGi2COFPLhNXWIUYXE2anHUf
 ::# SKq12fMQJU39LBLlcvi7Au+/sLCOXYINEAOj83atjqEyJ7uZhxUaXhv5G1BLBwiIhveNQQEAADgC
 ::# AABQSwMEFAAAAAAASj5HXQAAAAAAAAAAAAAAABMAIABzcGVja2l0LWF1dG9ub21vdXMvdXgLAAEE
-::# AAAAAAQAAAAAVVQNAAcse8Vq6XzFaix7xWpQSwMEFAAIAAgASj5HXQAAAAAAAAAAAAAAABsAIABz
-::# cGVja2l0LWF1dG9ub21vdXMvU0tJTEwubWR1eAsAAQQAAAAABAAAAABVVA0AByx7xWq5fMVqLHvF
+::# AAAAAAQAAAAAVVQNAAcse8Vq/9XFaix7xWpQSwMEFAAIAAgASj5HXQAAAAAAAAAAAAAAABsAIABz
+::# cGVja2l0LWF1dG9ub21vdXMvU0tJTEwubWR1eAsAAQQAAAAABAAAAABVVA0AByx7xWpCzsVqLHvF
 ::# aoVZW08bSRZ+j5T/0Jq87CI5VvamFW/ZJJqJMtJkc9E+RNHagU5iJVzWl8zsm7sbjG8EQmIgQMLd
 ::# NvZgQyCE2GD/ly1Xd/tp/sKec6qq3QZGeTF2X6rO5Tvf+U4RCAQuXxoNj+iDWmxcH3oRiQfCifjY
 ::# 6NjIWCJ2+dKwHhuKRsbjkbHRQY1ZRWadMPMIP408S+bdqQpv5ZwPSTuTY8lpZpTt/JSz1WDGAjNW
@@ -675,8 +708,8 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# IKgmaxJkPSp3ausQl57WRhRpt2+qCbgu4KqFCF2PHj68ffPv9rrxGNoTTFZHu8R1Pu1LE/5XLBtV
 ::# CPhvB5JsSH/9/yIgsUys4okdpbbqPb6jAwNPcwQ9rREE2AOfSrqX7Of1nPo52oTt/g9QSwcIxAK/
 ::# 5TcMAAA7GgAAUEsDBBQAAAAAAEo+R10AAAAAAAAAAAAAAAAQACAAc3BlY2tpdC1yZXF1aXJlL3V4
-::# CwABBAAAAAAEAAAAAFVUDQAHLHvFaul8xWose8VqUEsDBBQACAAIAEo+R10AAAAAAAAAAAAAAAAY
-::# ACAAc3BlY2tpdC1yZXF1aXJlL1NLSUxMLm1kdXgLAAEEAAAAAAQAAAAAVVQNAAcse8VquXzFaix7
+::# CwABBAAAAAAEAAAAAFVUDQAHLHvFav/VxWose8VqUEsDBBQACAAIAEo+R10AAAAAAAAAAAAAAAAY
+::# ACAAc3BlY2tpdC1yZXF1aXJlL1NLSUxMLm1kdXgLAAEEAAAAAAQAAAAAVVQNAAcse8VqQs7Faix7
 ::# xWqNVktTGzkQvlPFf5gKl8VVZir7uHDbWrKbVA5JkVTtcXHMJLiIDTszJLs3a4aHsQ0GEtsQ2JiH
 ::# AWNiEwJFvBjwf1lZmuGUv5CWNBo/SNVysSWN1Oru7+tPHQwGe3tioag2qBiTWng8YgZ17c+piK71
 ::# 9oxqRliPTJqRidig8lvEvD/1THkCm5SHEVP5bsw0J41BVX0RMcemng2EJ6LeUGWGgmCpX8HWSvOy
@@ -706,8 +739,8 @@ rem ---- qwen-skills.zip as base64: lines starting with "::# " ----
 ::# eNlF2GTxhFQT3T2Gr0xk85gsJ0XwIkNqW5tUkOQCyDwcYNTpHW8i4B5uqIOidKPs7u/wHoS1raz/
 ::# gbYV+s9qqktDOvoXSXpy1eqU6Ad4S2vX8U/QtnPrXwFQSwcICssQGyEGAAB6DAAAUEsDBBQAAAAA
 ::# AEo+R10AAAAAAAAAAAAAAAAPACAAc3BlY2tpdC11cGRhdGUvdXgLAAEEAAAAAAQAAAAAVVQNAAcs
-::# e8Vq6XzFaix7xWpQSwMEFAAIAAgASj5HXQAAAAAAAAAAAAAAABcAIABzcGVja2l0LXVwZGF0ZS9T
-::# S0lMTC5tZHV4CwABBAAAAAAEAAAAAFVUDQAHLHvFarl8xWose8VqhVZdTxtHFH1H4j+MwkuhWTb9
+::# e8Vq/9XFaix7xWpQSwMEFAAIAAgASj5HXQAAAAAAAAAAAAAAABcAIABzcGVja2l0LXVwZGF0ZS9T
+::# S0lMTC5tZHV4CwABBAAAAAAEAAAAAFVUDQAHLHvFakLOxWose8VqhVZdTxtHFH1H4j+MwkuhWTb9
 ::# VMtbFFAatVWrRigPSSQbewlubGzZJihvnl3irD+oKUkwJCbBiA/HxCZOCE0Cxv+lw+zaT/kLvXd2
 ::# vV6vW1UCaz2+c+eec8+5s5IkDQ/N+yPKBEnElMDdUFJaiAX9SWV4KKgkAvFQLBmKzk+Qq6HkDwsz
 ::# 5DrEkB9DSfLZXDIZS0zI8p1Qcm5hZjwQjdiPMuaRINEoYbTOtA2mnTL1A9NWxMN7pu0z7a3x7MhY

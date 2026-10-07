@@ -2,11 +2,14 @@
 rem Download (or switch to) a Strata model. Run it any time to add another model.
 rem   strata-download.bat          pick from a menu
 rem   strata-download.bat 3        pick by number (no menu)
-rem The model you pick becomes the one strata-hermes.bat starts (saved in %STRATA_DIR%\selected-model.txt).
-rem Strata location: set STRATA_DIR before running to override (default D:\Strata).
+rem   strata-download.bat 1 "D:\old\models\IQ2_XS"   use GGUF files you already have (copied, no download)
+rem The model you pick becomes the one strata-qwen.bat / strata-hermes.bat start (saved in %STRATA_DIR%\selected-model.txt).
+rem Strata location: the STRATA_DIR environment variable (set by the installer), else C:\Strata.
+rem Model files go next to it: %STRATA_DIR%-data (e.g. C:\Strata-data).
 setlocal
 title Strata model download
-if not defined STRATA_DIR set "STRATA_DIR=D:\Strata"
+if not defined STRATA_DIR set "STRATA_DIR=C:\Strata"
+set "DATA_DIR=%STRATA_DIR%-data"
 if not exist "%STRATA_DIR%\START-HERE.bat" (
   echo Strata not found at %STRATA_DIR%. Run install-strata-qwen.bat first.
   pause
@@ -31,12 +34,13 @@ set "N=%errorlevel%"
 
 :pick
 set "FAMILY=qwen"
+set "PFX="
 if "%N%"=="1" ( set "SIZE=IQ2_XS"  & set "TAG=iq2_xs" )
 if "%N%"=="2" ( set "SIZE=Q2_0"    & set "TAG=q2_0" )
 if "%N%"=="3" ( set "SIZE=IQ3_XXS" & set "TAG=iq3_xxs" )
 if "%N%"=="4" ( set "SIZE=IQ3_S"   & set "TAG=iq3_s" )
-if "%N%"=="5" ( set "FAMILY=coder" & set "SIZE=IQ1_M"  & set "TAG=coder-iq1_m" )
-if "%N%"=="6" ( set "FAMILY=swift" & set "SIZE=IQ2_XS" & set "TAG=swift-iq2_xs" )
+if "%N%"=="5" ( set "FAMILY=coder" & set "PFX=coder-" & set "SIZE=IQ1_M"  & set "TAG=coder-iq1_m" )
+if "%N%"=="6" ( set "FAMILY=swift" & set "PFX=swift-" & set "SIZE=IQ2_XS" & set "TAG=swift-iq2_xs" )
 if not defined TAG (
   echo Unknown choice "%N%". Use a number from 1 to 6.
   pause
@@ -48,8 +52,17 @@ echo Model: %FAMILY% %SIZE%
 if exist "%STRATA_DIR%\run-%TAG%.bat" (
   echo Already downloaded and set up. Nothing to download.
 ) else (
-  echo Downloading and setting up. This takes a long time and can be stopped and resumed by running this file again.
-  call "%STRATA_DIR%\START-HERE.bat" --yes --family %FAMILY% --model %SIZE% --context 131072 --no-start
+  if not "%~2"=="" (
+    echo Copying the model files from %~2 ...
+    robocopy "%~2" "%DATA_DIR%\models\%PFX%%SIZE%" *.gguf *.done /J /NP /NJH /NJS
+    if errorlevel 8 (
+      echo Copy failed.
+      pause
+      exit /b 1
+    )
+  )
+  echo Setting up. Without local files this downloads 30-76 GB: it can be stopped and resumed by running this file again.
+  call "%STRATA_DIR%\START-HERE.bat" --yes --family %FAMILY% --model %SIZE% --context 131072 --no-start --data-dir "%DATA_DIR%"
   if not exist "%STRATA_DIR%\run-%TAG%.bat" (
     echo.
     echo Setup did not finish. Run this file again to resume.
@@ -64,6 +77,6 @@ if errorlevel 1 powershell -NoProfile -Command "(Get-Content -Raw '%STRATA_DIR%\
 
 > "%STRATA_DIR%\selected-model.txt" echo %TAG%
 echo.
-echo Done. strata-hermes.bat now starts: %FAMILY% %SIZE%
+echo Done. strata-qwen.bat now starts: %FAMILY% %SIZE%
 if "%~1"=="" pause
 exit /b 0

@@ -1,0 +1,6 @@
+# KiriDev skills installed into Hermes (always in the prompt's skill index).
+# One category (core) or category/name (ai/strata) per line. Everything else stays in the repo
+# and is loaded on demand by skill-router from skills/index.md (read the SKILL.md file directly).
+core
+workflow
+ai/strata

@@ -51,7 +51,10 @@ if errorlevel 1 (
 )
 echo Strata is ready. Opening Hermes.
 cd /d "%~dp0"
-call hermes chat --provider strata -m strata --yolo
+rem Show the real loaded model name in Hermes (the server accepts any name; keep "strata" as fallback).
+set "MODEL_ID=strata"
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Invoke-RestMethod http://127.0.0.1:8080/v1/models).data[0].id"`) do set "MODEL_ID=%%i"
+call hermes chat --provider strata -m "%MODEL_ID%" --yolo
 
 if "%STARTED%"=="1" (
   echo Stopping Strata.

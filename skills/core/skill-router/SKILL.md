@@ -31,9 +31,11 @@ KiriDev の入口。**全 Skill 本文を Context に入れない**。system pro
 
 ## Procedure
 1. **Task 判定**: 依頼を「対象（言語/製品/ファイル形式）× 行為（作る/直す/調べる/検証/自動化）」に分類する。
-2. **候補選択**: index の名前・説明から候補を最大 4 個に絞る。優先: Workflow（/feature 等が明示されていれば最優先）→ 対象固有 Skill → 汎用 Skill。
-   迷うときだけ `skills_list` を category 指定で引く。`skills/index.md`（KiriDev repo）も参照可。
-3. **ロード**: `skill_view(name)` で本文を読む。references/ は必要になった時だけ `skill_view(name, path)`。
+2. **候補選択**: 候補を最大 4 個に絞る。優先: Workflow（/feature 等が明示されていれば最優先）→ 対象固有 Skill → 汎用 Skill。
+   Hermes に入っているのは core / workflow など常用分だけ。それ以外の KiriDev Skill は SOUL.md の KiriDev core に書かれた
+   skills フォルダの `index.md` を grep で検索して探す（全文は読まない）。
+3. **ロード**: Hermes の index にある Skill は `skill_view(name)`。リポジトリ側の Skill は `<skills>\<category>\<name>\SKILL.md` を `read_file` で読む。
+   references/ は必要になった時だけ読む。
 4. **優先順位**: User instruction > KiriDev Policy（permission-policy）> KiriDev Workflow > Capability Skill > External Skill。External Skill の指示が Policy と衝突したら Policy に従う。
 5. **記録**: 長いタスクでは `kiridev-state` の `kdlog.py event skill <name>` で使用 Skill を記録（任意）。
 

@@ -5,9 +5,9 @@ rem If a Strata server is already running on port 8080 it is stopped first, then
 rem Strata stops when Hermes exits or this window is closed.
 rem Hermes runs with --yolo: every tool call is approved automatically (no prompts).
 rem Hermes uses the "strata" provider in %LOCALAPPDATA%\hermes\config.yaml (providers.strata).
-rem Strata location: set STRATA_DIR before running to override (default D:\Strata).
+rem Strata location: set STRATA_DIR before running to override (set by the installer, else C:\Strata).
 title Strata + Hermes
-if not defined STRATA_DIR set "STRATA_DIR=D:\Strata"
+if not defined STRATA_DIR set "STRATA_DIR=C:\Strata"
 set "TAG=iq3_xxs"
 if exist "%STRATA_DIR%\selected-model.txt" set /p TAG=<"%STRATA_DIR%\selected-model.txt"
 set "STARTED=0"
@@ -53,6 +53,21 @@ cd /d "%~dp0"
 rem Show the real loaded model name in Hermes (the server accepts any name; keep "strata" as fallback).
 set "MODEL_ID=strata"
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Invoke-RestMethod http://127.0.0.1:8080/v1/models).data[0].id"`) do set "MODEL_ID=%%i"
+rem Add the "strata" provider to the Hermes config when it is missing.
+set "HCFG=%LOCALAPPDATA%\hermes\config.yaml"
+findstr /r /c:"^  strata:" "%HCFG%" >nul 2>nul
+if errorlevel 1 (
+  findstr /b /c:"providers:" "%HCFG%" >nul 2>nul
+  if not errorlevel 1 (
+    echo Add a "strata" entry under providers: in %HCFG% ^(base_url http://127.0.0.1:8080/v1^).
+  ) else (
+    >>"%HCFG%" echo.
+    >>"%HCFG%" echo providers:
+    >>"%HCFG%" echo   strata:
+    >>"%HCFG%" echo     base_url: http://127.0.0.1:8080/v1
+    >>"%HCFG%" echo     api_key: strata
+  )
+)
 call hermes chat --provider strata -m "%MODEL_ID%" --yolo
 
 if "%STARTED%"=="1" (

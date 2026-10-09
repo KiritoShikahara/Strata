@@ -81,6 +81,10 @@ rem long replies: shorten max_tokens to the room left in the context instead of 
 findstr /c:"fit_max_tokens" "%STRATA_DIR%\strata-%TAG%.json" >nul 2>nul
 if errorlevel 1 powershell -NoProfile -Command "(Get-Content -Raw '%STRATA_DIR%\strata-%TAG%.json') -replace '\"port\": 8080,', ('\"port\": 8080,' + [Environment]::NewLine + ' \"fit_max_tokens\": true,') | Set-Content -NoNewline '%STRATA_DIR%\strata-%TAG%.json'"
 
+rem no sampling block = greedy decoding, which loops on repeated text: set defaults (a request's own fields still win)
+findstr /c:"\"sampling\"" "%STRATA_DIR%\strata-%TAG%.json" >nul 2>nul
+if errorlevel 1 powershell -NoProfile -Command "(Get-Content -Raw '%STRATA_DIR%\strata-%TAG%.json') -replace '\"port\": 8080,', ('\"port\": 8080,' + [Environment]::NewLine + ' \"sampling\": {\"temperature\": 0.7, \"top_p\": 0.8, \"top_k\": 20, \"presence_penalty\": 1.0},') | Set-Content -NoNewline '%STRATA_DIR%\strata-%TAG%.json'"
+
 > "%STRATA_DIR%\selected-model.txt" echo %TAG%
 echo.
 echo Done. strata-qwen.bat now starts: %FAMILY% %SIZE%

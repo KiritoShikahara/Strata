@@ -1,5 +1,6 @@
 // Rebuilds the payloads embedded at the end of install-strata-qwen.bat, so it works as a single file:
 //   "::| " lines = strata-qwen.bat              (step 5 writes it out)
+//   "::h " lines = strata-hermes.bat            (step 5 writes it out too)
 //   "::+ " lines = strata-download.bat          (step 3 writes it out and runs it)
 //   "::# " lines = qwen-skills/ as a base64 zip (step 6 unpacks it)
 //   "::~ " lines = qwen-settings.js, base64     (step 7 runs it)
@@ -28,6 +29,7 @@ const section = (what, prefix, ls) => marker + what + ': lines starting with "' 
 const out =
   head + '\n' +
   section('strata-qwen.bat', '::| ', lines('strata-qwen.bat')) +
+  section('strata-hermes.bat', '::h ', lines('strata-hermes.bat')) +
   section('strata-download.bat', '::+ ', lines('strata-download.bat')) +
   section('qwen-skills.zip as base64', '::# ', skills) +
   section('qwen-settings.js as base64', '::~ ', b64lines(fs.readFileSync('qwen-settings.js')));

@@ -48,6 +48,10 @@ $disabled = @(Get-Content (Join-Path $repo 'hermes\disabled-skills.txt') | Where
 $json = '[' + (($disabled | ForEach-Object { '"' + $_ + '"' }) -join ',') + ']'
 if ($WhatIf) { "set skills.disabled ($($disabled.Count))" } else { hermes config set skills.disabled $json | Out-Null; "Hermes skills disabled: $($disabled.Count)" }
 
+# /worker-* quick commands (Claude Code ultra worker switch; run without the LLM).
+$worker = Join-Path $src 'workflow\claude-worker\scripts\claude-worker.mjs'
+if ($WhatIf) { "register /worker-* quick commands" } else { node $worker register }
+
 # Always-loaded KiriDev core block in SOUL.md (between markers; the rest of SOUL.md is left untouched).
 $soul = Join-Path $HermesHome 'SOUL.md'
 $core = (Get-Content (Join-Path $repo 'hermes\kiridev-core.md') -Raw -Encoding UTF8).TrimEnd().Replace('{{KIRIDEV_SKILLS}}', $src)

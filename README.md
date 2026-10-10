@@ -40,6 +40,23 @@
 
 元の PC の `C:\Strata-data\models\coder-IQ1_M` の 2 ファイルを新しい PC の同じ場所に置けば、手順 2 のダウンロードが省ける（`--gguf-dir <フォルダ>` でも指定可）。
 
+## Claude Code ワーカー（Hermes）
+
+Hermes（Strata）をオーケストレーターにし、実装と調査を Claude Code の ultra プロファイルへ委譲できる（仕様: `specs/SPEC-001/spec.md`）。ClaudeCode-Context（ctx-kit）の `install.bat` が実行済みであることが前提。
+
+- 導入: `powershell -File scripts\sync-hermes-skills.ps1`（skill の同期と `/worker-*` コマンドの登録）
+- 切り替え（Hermes の入力欄で実行。状態は再起動後も引き継ぐ）:
+
+| コマンド | 動作 |
+| --- | --- |
+| `/worker-on` / `/worker-off` | ワーカーを使う / 使わない（初期値は OFF） |
+| `/worker-status` | 現在の状態を表示 |
+| `/worker-1` / `/worker-2` / `/worker-3` | ワーカーの Claude アカウント（初期値は 1。未ログインのアカウントは拒否） |
+| `/worker-opus` / `/worker-sonnet` | ワーカーのモデル（初期値は opus） |
+| `/worker-impl` / `/worker-code` / `/worker-web` / `/worker-all` | 任せる範囲: 実装だけ（初期値。調査と Web 検索は Strata） / 実装とファイル調査 / Web 検索だけ / すべて |
+
+- テスト: `node --test skills/workflow/claude-worker/scripts/claude-worker.test.mjs`
+
 ## 注意
 
 - セットアップは 1 つだけ動かす。2 つ同時に動かすと同じ `.part` ファイルに書き込んで壊れる。

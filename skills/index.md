@@ -1,6 +1,6 @@
 # KiriDev Skill Index
 
-全 269 Skill。機械可読版: `skills/index.yaml`。再生成: `python scripts/kiridev_skills.py index`。
+全 270 Skill。機械可読版: `skills/index.yaml`。再生成: `python scripts/kiridev_skills.py index`。
 
 ## ai (24)
 
@@ -332,13 +332,14 @@
 | `redis` | Redis のキャッシュ・キュー・セッション運用とデバッグ | medium | catalog |
 | `websocket` | WebSocket 双方向通信の実装・接続デバッグ | medium | catalog |
 
-## workflow (24)
+## workflow (25)
 
 | Skill | 説明 | risk | source |
 |---|---|---|---|
 | `audit` | コード/依存/権限/Secret/設定を横断監査し優先順に報告 | low | hand-written |
 | `benchmark` | 速度/品質ベンチを再現可能に計測し記録（モデル含む） | low | hand-written |
 | `checkpoint` | 作業状態を .kiridev/checkpoint.md と git/snapshot に保存 | low | hand-written |
+| `claude-worker` | 実装・調査を Claude Code ultra ワーカーへ委譲（/worker-on 時のみ） | medium | hand-written |
 | `commit` | 全変更を履歴の書式に合わせて 1 コミット | low | ported from qwen-skills/commit |
 | `compus` | commit してから push（/commit + /push） | medium | ported from qwen-skills/compus |
 | `diagnose` | 再現→証拠→仮説→計測→根本原因→修正→回帰テスト→検証 | low | hand-written |

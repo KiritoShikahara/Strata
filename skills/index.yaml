@@ -1,6 +1,6 @@
 version: 1
 generated_by: scripts/kiridev_skills.py
-count: 269
+count: 270
 skills:
 - name: agent-design
   category: ai
@@ -2850,6 +2850,19 @@ skills:
   - 長時間作業の途中
   - 危険な変更の前
   risk_level: low
+  source: hand-written
+- name: claude-worker
+  category: workflow
+  path: workflow/claude-worker
+  description: 実装・調査を Claude Code ultra ワーカーへ委譲（/worker-on 時のみ）
+  triggers:
+  - 実装して
+  - 修正して
+  - 調査して
+  - 委譲
+  - ワーカー
+  - claude code
+  risk_level: medium
   source: hand-written
 - name: commit
   category: workflow

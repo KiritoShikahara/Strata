@@ -55,6 +55,7 @@ Hermes（Strata）をオーケストレーターにし、実装と調査を Clau
 | `/worker-opus` / `/worker-sonnet` | ワーカーのモデル（初期値は opus） |
 | `/worker-impl` / `/worker-code` / `/worker-web` / `/worker-all` | 任せる範囲: 実装だけ（初期値。調査と Web 検索は Strata） / 実装とファイル調査 / Web 検索だけ / すべて |
 
+- 入力欄で `/worker` まで打つと、候補と説明が補完に出る。使い方の詳細: `docs/claude-worker.md`
 - テスト: `node --test skills/workflow/claude-worker/scripts/claude-worker.test.mjs`
 
 ## 注意

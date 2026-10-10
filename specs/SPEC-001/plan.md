@@ -17,7 +17,7 @@
 | `skills/workflow/claude-worker/scripts/claude-worker.test.mjs` | 新規 | 自動テスト |
 | `skills/workflow/claude-worker/SKILL.md` | 新規 | 委譲手順(プロンプトに書く内容、失敗時の扱い) |
 | `hermes/kiridev-core.md` | 変更 | 委譲ルールを1行追加 |
-| `scripts/sync-hermes-skills.ps1` | 変更 | ラッパーの `register` を呼び、quick_commands 8件を `hermes config set` で登録 |
+| `scripts/sync-hermes-skills.ps1` | 変更 | ラッパーの `register` を呼び、`/worker-*` を Hermes plugin(`<HermesHome>\plugins\kiridev-worker`)として登録 |
 | `README.md` | 変更 | コマンド一覧を追記 |
 
 `strata-hermes.bat` と `build-installer.js` は変更しない。`hermes/active-skills.txt` は `workflow` カテゴリ全体が有効なので変更不要。
@@ -52,7 +52,7 @@
 2. ctx-kit の場所を解決する(`CTXKIT_ROOT`、無ければ `%USERPROFILE%\.claude-ctxkit\root.txt`)。`kit\worker.mjs` が無ければ 4 で終了する。
 3. `CLAUDE_CONFIG_DIR` を指定アカウントに設定し、`node <kit>\worker.mjs --model <model> [--readonly] [--cwd DIR] "<task>"` を実行する。標準出力・標準エラー・終了コードをそのまま返す。
 
-**quick_commands**(`config.yaml`、すべて `type: exec`)
+**plugin コマンド**(`<HermesHome>\plugins\kiridev-worker`。`register` が生成し、`/` の補完候補に説明付きで出る。quick_commands は補完に出ないため使わない)
 
 | コマンド | 実行内容 |
 |---|---|

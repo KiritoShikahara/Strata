@@ -57,7 +57,7 @@ Strata のローカルモデルで動く Hermes をオーケストレーター(�
 
 - **FR-001**: 委譲は1つのラッパースクリプト経由とする。ラッパーは状態ファイルを読み、`CLAUDE_CONFIG_DIR` を設定して `worker.mjs` を呼ぶ。
 - **FR-002**: 状態(enabled / account / model)は Hermes ホーム配下の1ファイルに保存する。
-- **FR-003**: 切り替えコマンドは LLM を介さず決定的に動く。Hermes の `quick_commands`(`type: exec`)で、引数なしの `/worker-on` `/worker-off` `/worker-1` `/worker-2` `/worker-3` `/worker-opus` `/worker-sonnet` `/worker-status` を登録する。
+- **FR-003**: 切り替えコマンドは LLM を介さず決定的に動く。Hermes の plugin コマンド(`/` の補完候補に出る。quick_commands は出ない)で、引数なしの `/worker-on` `/worker-off` `/worker-1` `/worker-2` `/worker-3` `/worker-opus` `/worker-sonnet` `/worker-status` を登録する。
 - **FR-004**: OFF の強制はラッパー側で行う(プロンプト指示だけに頼らない)。
 - **FR-005**: `hermes/kiridev-core.md` に委譲ルールを1行追加する。ルールは「実装・調査の前にラッパーを呼ぶ。無効と返ったら自分で作業する」とする。
 - **FR-006**: ワーカーへ渡すプロンプトには、目的・対象パス・完了条件を含める(ワーカーは文脈ゼロで起動し、質問を返せない)。

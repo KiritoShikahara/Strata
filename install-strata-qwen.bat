@@ -5,7 +5,7 @@ rem   install-strata-qwen.bat 2      pick by number (see the menu), no question
 rem   install-strata-qwen.bat 1 "E:\models\IQ2_XS"   use GGUF files you already have (copied, no model download)
 rem Safe to run again: finished steps are skipped and the model download resumes.
 rem It also writes strata-download.bat (add or switch models later) strata-qwen.bat and strata-hermes.bat (the launchers) next to this file.
-rem Strata goes to C:\Strata by default; the menu's [B] opens a folder picker to put it elsewhere.
+rem Strata goes to C:\Strata by default; the menu's [B] opens an Explorer-style picker (address bar, paste a path) to put it elsewhere.
 rem The models go next to it (C:\Strata-data). The place is saved as the user environment variable STRATA_DIR,
 rem so a strata-qwen.bat copied into any folder finds Strata.
 rem Needs about 80 GB free per model and a few hours for the 66-76 GB download. Context is 131072 tokens.
@@ -81,7 +81,7 @@ exit /b 0
 
 :browse
 set "PICKED="
-for /f "usebackq delims=" %%i in (`powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description = 'Pick where to put the Strata folder (a Strata folder is created inside)'; if ($d.ShowDialog() -eq 'OK') { $d.SelectedPath }"`) do set "PICKED=%%i"
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Title = 'Pick where to put the Strata folder (a Strata folder is created inside)'; $d.ValidateNames = $false; $d.CheckFileExists = $false; $d.CheckPathExists = $true; $d.FileName = 'Select this folder'; if ($d.ShowDialog() -eq 'OK') { if (Test-Path -LiteralPath $d.FileName -PathType Container) { $d.FileName } else { Split-Path $d.FileName } }"`) do set "PICKED=%%i"
 if not defined PICKED exit /b 0
 if /i "%PICKED:~-7%"=="\Strata" (set "STRATA_DIR=%PICKED%") else (set "STRATA_DIR=%PICKED%\Strata")
 if "%PICKED:~-1%"=="\" set "STRATA_DIR=%PICKED%Strata"

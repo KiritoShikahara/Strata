@@ -28,8 +28,10 @@ echo    3  IQ3_XXS   47 GB RAM   slower, great quality    RECOMMENDED for 64 GB
 echo    4  IQ3_S     55 GB RAM   slowest, best quality    64 GB with little else open
 echo    5  Coder     30 GB RAM   code only, fits 32 GB PCs
 echo    6  Swift     39 GB RAM   IQ2_XS fine-tune that thinks shorter
+echo    7  Gyro-S    28 GB RAM+VRAM  smallest, for 32 GB PCs (58 GB download, NVIDIA/AMD)
+echo    8  Gyro-M    35 GB RAM+VRAM  about IQ3_XXS quality (92 GB download, NVIDIA/AMD)
 echo.
-choice /c 123456 /n /m "Number (1-6): "
+choice /c 12345678 /n /m "Number (1-8): "
 set "N=%errorlevel%"
 
 :pick
@@ -41,8 +43,10 @@ if "%N%"=="3" ( set "SIZE=IQ3_XXS" & set "TAG=iq3_xxs" )
 if "%N%"=="4" ( set "SIZE=IQ3_S"   & set "TAG=iq3_s" )
 if "%N%"=="5" ( set "FAMILY=coder" & set "PFX=coder-" & set "SIZE=IQ1_M"  & set "TAG=coder-iq1_m" )
 if "%N%"=="6" ( set "FAMILY=swift" & set "PFX=swift-" & set "SIZE=IQ2_XS" & set "TAG=swift-iq2_xs" )
+if "%N%"=="7" ( set "FAMILY=gyro" & set "PFX=gyro-" & set "SIZE=Gyro-S" & set "TAG=gyro-gyro-s" )
+if "%N%"=="8" ( set "FAMILY=gyro" & set "PFX=gyro-" & set "SIZE=Gyro-M" & set "TAG=gyro-gyro-m" )
 if not defined TAG (
-  echo Unknown choice "%N%". Use a number from 1 to 6.
+  echo Unknown choice "%N%". Use a number from 1 to 8.
   pause
   exit /b 1
 )
@@ -52,6 +56,7 @@ echo Model: %FAMILY% %SIZE%
 rem the refusal-removing projection (experimental-speed-projection) is on by default; Swift does not support it
 set "ESP=on"
 if "%FAMILY%"=="swift" set "ESP=off"
+if "%FAMILY%"=="gyro" set "ESP=off"
 set "NEED=1"
 if exist "%STRATA_DIR%\run-%TAG%.bat" set "NEED=0"
 if "%NEED%%ESP%"=="0on" findstr /c:"speed-projection" "%STRATA_DIR%\strata-%TAG%.json" >nul 2>nul || set "NEED=1"

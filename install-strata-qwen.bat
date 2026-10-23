@@ -43,7 +43,13 @@ where npm >nul 2>nul || goto need_restart
 
 echo [2/7] Getting Strata into %STRATA_DIR% ...
 if exist "%STRATA_DIR%\START-HERE.bat" (
-  echo Already there.
+  echo Already there. Updating ...
+  git -C "%STRATA_DIR%" fetch origin || goto fail
+  git -C "%STRATA_DIR%" merge --ff-only origin/HEAD >nul 2>nul || (
+    echo Local history differs from the release: old state kept as branch strata-backup.
+    git -C "%STRATA_DIR%" branch -f strata-backup HEAD
+    git -C "%STRATA_DIR%" reset --hard origin/HEAD || goto fail
+  )
 ) else (
   git clone https://github.com/Niko1221/Strata "%STRATA_DIR%" || goto fail
 )
